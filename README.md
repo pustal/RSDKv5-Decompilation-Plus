@@ -16,8 +16,8 @@ We do not condone using this project as a means for piracy in any form. This pro
 * Added a built-in shader compiler for backends/platforms that support it.
 * Added various other backends to windows aside from the usual DirectX 9 backends
 
-## If you are here for Sonic Mania:
-You have the option of building RSDKv5 alongside Mania in [the Sonic Mania Decompilation repo](https://github.com/RSDKModding/Sonic-Mania-Decompilation), or [its Plus fork](https://github.com/pustal/Sonic-Mania-Decompilation-Plus), which builds this engine.
+## If you are here for Sonic Mania, Sonic Origins, the old Sonic 1 & 2 Classic or 2012's Sonic CD:
+You have the option of building RSDKv5 Plus alongside these games in [the Sonic Mania Decompilation Plus repo](https://github.com/pustal/Sonic-Mania-Decompilation-Plus).
 
 # Plus: retro games next to Sonic Mania
 This fork (RSDKv5-Decompilation-Plus) adds, on top of the decompilation, a way to play **Sonic the Hedgehog, Sonic 2 and Sonic CD** next to Sonic Mania from your own data packs, managed from an in-game menu. It needs v5U (`RETRO_REVISION` 3) and the mod loader, and can be switched off with `RETRO_PLUS`. No game data is included.
