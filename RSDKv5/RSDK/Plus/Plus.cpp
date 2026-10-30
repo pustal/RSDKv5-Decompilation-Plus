@@ -12,9 +12,11 @@
 //   maniaAudio=1           Sonic Mania's audio fills the retro games' gaps
 //   maniaSimilarMusic=0    ...including similar-feel music for other zones
 //   coins=0                Sonic Origins' coins, shared by the retro games
+//   ; end                  marks the end (see SaveConfig())
 
+#include <cstdio>
 #include <filesystem>
-#include <fstream>
+#include <type_traits>
 
 #include "PlusPacks.cpp"
 
@@ -79,13 +81,33 @@ bool IsRetroGame(const std::string &id) { return FindRetroGame(id) != nullptr; }
 /** Interprets the usual spellings of an ini boolean. */
 bool ParseBool(const std::string &value) { return value == "1" || value == "true" || value == "y" || value == "yes"; }
 
+/** Plus.ini's last line. Anything after it is ignored (see SaveConfig()). */
+const char *const kConfigEndLine = "; end";
+
+/** Reads Plus.ini (through OpenUserFile(), so Android's picked folder works too). */
 void LoadConfig()
 {
-    std::ifstream in(UserPath(kConfigName));
-    std::string line;
-    while (std::getline(in, line)) {
+    PackFile in(UserPath(kConfigName), "rb");
+    if (!in.file)
+        return;
+
+    std::string text;
+    char buffer[0x200];
+    size_t count = 0;
+    while ((count = fread(buffer, 1, sizeof(buffer), in.file)) > 0)
+        text.append(buffer, count);
+
+    size_t start = 0;
+    while (start < text.size()) {
+        size_t end = text.find('\n', start);
+        if (end == std::string::npos)
+            end = text.size();
+        std::string line = text.substr(start, end - start);
+        start            = end + 1;
         if (!line.empty() && line.back() == '\r')
             line.pop_back();
+        if (line == kConfigEndLine)
+            break;
         const size_t equals = line.find('=');
         if (line.empty() || line[0] == ';' || line[0] == '#' || equals == std::string::npos)
             continue;
@@ -102,15 +124,22 @@ void LoadConfig()
     }
 }
 
+/**
+ * Writes Plus.ini. It ends with kConfigEndLine because Android's folder
+ * picker can hand out a descriptor that does not truncate the file: when the
+ * new text is shorter, the old file's tail stays after that line, unread.
+ */
 void SaveConfig()
 {
-    std::ofstream out(UserPath(kConfigName), std::ios::trunc);
-    out << "; Plus settings (see RSDK/Plus/Plus.cpp)\n";
-    out << "lastGame=" << plus.config.lastGame << "\n";
-    out << "maniaAudio=" << (plus.config.maniaAudio ? 1 : 0) << "\n";
-    out << "maniaSimilarMusic=" << (plus.config.similarMusic ? 1 : 0) << "\n";
-    out << "coins=" << plus.config.coins << "\n";
-    if (!out)
+    std::string text = "; Plus settings (see RSDK/Plus/Plus.cpp)\n";
+    text += "lastGame=" + plus.config.lastGame + "\n";
+    text += std::string("maniaAudio=") + (plus.config.maniaAudio ? "1" : "0") + "\n";
+    text += std::string("maniaSimilarMusic=") + (plus.config.similarMusic ? "1" : "0") + "\n";
+    text += "coins=" + std::to_string(plus.config.coins) + "\n";
+    text += std::string(kConfigEndLine) + "\n";
+
+    PackFile out(UserPath(kConfigName), "wb");
+    if (!out.file || fwrite(text.data(), 1, text.size(), out.file) != text.size())
         PrintLog(PRINT_NORMAL, "[Plus] Could not write %s", kConfigName);
 }
 
@@ -168,8 +197,11 @@ void EnsureSaveFolder()
     // Whatever was there (a mod's folder, or none) comes back with Sonic Mania.
     if (strncmp(customUserFileDir, UserPath(kRetroFolder).c_str(), UserPath(kRetroFolder).size()) != 0)
         strcpy(plus.otherUserFileDir, customUserFileDir);
+#if RETRO_PLATFORM != RETRO_ANDROID
+    // On Android the Java side creates the folders when a save is first written.
     std::error_code error;
     std::filesystem::create_directories(folder, error);
+#endif
     strcpy(customUserFileDir, folder.c_str());
 }
 

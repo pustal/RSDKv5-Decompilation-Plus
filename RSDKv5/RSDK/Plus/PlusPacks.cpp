@@ -92,10 +92,34 @@ std::string UserPath(const std::string &relative) { return std::string(SKU::user
 /** "retro/sonic1-origins.rsdk" or "retro/sonic1-classic.rsdk". */
 std::string PackPath(const char *gameId, bool origins) { return std::string(kRetroFolder) + "/" + gameId + (origins ? "-origins.rsdk" : "-classic.rsdk"); }
 
-/** An fopen()ed file, closed when it goes out of scope. */
+/**
+ * Opens a file of the user folder (a pack, Plus.ini) as a stdio FILE.
+ *
+ * On Android the user folder is the one picked in the launcher, reached
+ * through the Storage Access Framework: plain fopen() cannot see it, so the
+ * engine's fOpen() asks the Java side for a descriptor (androidHelpers.cpp).
+ * Files written there are created with their folders on the way. Elsewhere
+ * the user folder is an ordinary path.
+ *
+ * @param path Path including the user folder (UserPath()).
+ * @param mode An fopen() mode; on Android only "rb" and "wb" are used here.
+ * @return The file, or null when it cannot be opened.
+ */
+FILE *OpenUserFile(const std::string &path, const char *mode)
+{
+#if RETRO_PLATFORM == RETRO_ANDROID
+    // Android builds the OpenGL subsystem without SDL2, so FileIO is FILE.
+    static_assert(std::is_same<FileIO, FILE>::value, "Android's fOpen() must return a stdio FILE");
+    return fOpen(path.c_str(), mode);
+#else
+    return fopen(path.c_str(), mode);
+#endif
+}
+
+/** A file opened with OpenUserFile(), closed when it goes out of scope. */
 struct PackFile {
     FILE *file;
-    explicit PackFile(const std::string &path, const char *mode) : file(fopen(path.c_str(), mode)) {}
+    explicit PackFile(const std::string &path, const char *mode) : file(OpenUserFile(path, mode)) {}
     ~PackFile()
     {
         if (file)
@@ -420,12 +444,24 @@ Pack InspectPack(const std::string &relative)
 
 /**
  * Converts a Sonic CD 2011 pack found at @p relative, replacing it.
+ *
+ * On Android the picked folder offers no delete or rename, so the converted
+ * copy is kept next to the original as "<pack>.conv" and used from there
+ * (converted once, then found ready on later starts).
+ *
  * @return The pack afterwards (invalid if the conversion failed).
  */
 Pack ConvertInPlace(const std::string &relative)
 {
-    const std::string full      = UserPath(relative);
-    const std::string converted = full + ".conv";
+    const std::string convertedRelative = relative + ".conv";
+    const std::string full              = UserPath(relative);
+    const std::string converted         = UserPath(convertedRelative);
+#if RETRO_PLATFORM == RETRO_ANDROID
+    const Pack ready = InspectPack(convertedRelative);
+    if (ready.state == PACK_READY)
+        return ready;
+#endif
+
     std::string error;
     PrintLog(PRINT_NORMAL, "[Plus] Converting %s from Sonic CD's 2011 format...", relative.c_str());
     if (!ConvertOldV3Pack(full, converted, &error)) {
@@ -435,10 +471,15 @@ Pack ConvertInPlace(const std::string &relative)
         pack.state = PACK_INVALID;
         return pack;
     }
+
+#if RETRO_PLATFORM == RETRO_ANDROID
+    return InspectPack(convertedRelative);
+#else
     remove(full.c_str());
     if (rename(converted.c_str(), full.c_str()) != 0)
         PrintLog(PRINT_NORMAL, "[Plus] Could not replace %s with its converted copy", relative.c_str());
     return InspectPack(relative);
+#endif
 }
 
 /** Finds every retro game's packs (converting Sonic CD 2011 packs on the way). */
