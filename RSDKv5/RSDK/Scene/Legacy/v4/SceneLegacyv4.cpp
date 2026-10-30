@@ -36,6 +36,12 @@ void RSDK::Legacy::v4::ProcessStage(void)
 
     switch (stageMode) {
         case STAGEMODE_LOAD: // Startup
+#if RETRO_USE_PLUS
+            // (Plus) Save slots / the game's own menu when leaving the title screen:
+            // the stage loads once the Plus menu's save screen has been answered.
+            if (RSDK::Plus::OnLegacyStageLoad(4))
+                break;
+#endif
             SetActivePalette(0, 0, 256);
             gameMenu[0].visibleRowOffset = 0;
             gameMenu[1].visibleRowOffset = 0;
@@ -72,6 +78,10 @@ void RSDK::Legacy::v4::ProcessStage(void)
 #endif
             ResetBackgroundSettings();
             LoadStageFiles();
+#if RETRO_USE_PLUS
+            // (Plus) Boss Rush: start at the stage's last checkpoint, next to the boss.
+            RSDK::Plus::OnLegacyStageLoaded(4);
+#endif
             break;
 
         case STAGEMODE_NORMAL:

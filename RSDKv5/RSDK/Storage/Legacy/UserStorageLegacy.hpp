@@ -43,8 +43,14 @@ namespace v3
 
 void SetAchievement(int32 achievementID, int32 achievementDone);
 void SetLeaderboard(int32 leaderboardID, int32 score);
+#if RETRO_USE_PLUS
+// (Plus) Sonic CD's menu entries open the Plus menu's achievement list / a notice.
+void LoadAchievementsMenu();
+void LoadLeaderboardsMenu();
+#else
 inline void LoadAchievementsMenu() {}
 inline void LoadLeaderboardsMenu() {}
+#endif
 
 } // namespace v3
 

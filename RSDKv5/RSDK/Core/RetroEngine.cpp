@@ -255,6 +255,13 @@ int32 RSDK::RunRetroEngine(int32 argc, char *argv[])
                     }
 #endif
 
+#if RETRO_USE_PLUS
+                    // (Plus) A game chosen in the Plus menu: swap packs and re-initialise, as for mods.
+                    if (RSDK::Plus::SwitchPending()
+                        && (engine.version == 5 ? sceneInfo.state != ENGINESTATE_DEVMENU : RSDK::Legacy::gameMode != RSDK::Legacy::ENGINE_DEVMENU))
+                        RSDK::Plus::ApplyPendingSwitch();
+#endif
+
                     // update device states and other stuff
                     ProcessInputDevices();
 
@@ -270,6 +277,10 @@ int32 RSDK::RunRetroEngine(int32 argc, char *argv[])
                     }
 #else
                     ProcessEngine();
+#endif
+#if RETRO_USE_PLUS
+                    // (Plus) The Plus menu's button, notices.
+                    RSDK::Plus::Update();
 #endif
                 }
 
@@ -310,6 +321,10 @@ int32 RSDK::RunRetroEngine(int32 argc, char *argv[])
                         // DrawDevString(buffer, currentScreen->center.x, currentScreen->center.y - 48, 1, 0xF0F0F0);
                     }
 
+#if RETRO_USE_PLUS
+                    // (Plus) A notice (an achievement unlocked...) over the game.
+                    RSDK::Plus::DrawOverlay();
+#endif
                     RenderDevice::CopyFrameBuffer();
                 }
             }
@@ -323,6 +338,9 @@ int32 RSDK::RunRetroEngine(int32 argc, char *argv[])
 
     // Shutdown
 
+#if RETRO_USE_PLUS
+    RSDK::Plus::Release();
+#endif
     ReleaseInputDevices();
     AudioDevice::Release();
     RenderDevice::Release(false);
@@ -1523,3 +1541,9 @@ void RSDK::SendQuitMsg()
     PostQuitMessage(0);
 #endif
 }
+
+#if RETRO_USE_PLUS
+// (Plus) Retro games, the Plus menu and Sonic Mania audio for the retro games: one
+// translation unit with the engine, as the legacy cores are (see RSDK/Plus/Plus.hpp).
+#include "RSDK/Plus/Plus.cpp"
+#endif

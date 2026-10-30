@@ -1325,6 +1325,22 @@ void RSDK::Legacy::Draw3DSkyLayer(int32 layerID)
     }
 }
 
+#if RETRO_USE_PLUS
+void RSDK::Legacy::MirrorFrameBuffer()
+{
+    // (Plus) Reflects what has been drawn so far horizontally (Mirror mode).
+    for (int32 y = 0; y < SCREEN_YSIZE; ++y) {
+        uint16 *left  = &currentScreen->frameBuffer[GFX_LINESIZE * y];
+        uint16 *right = left + SCREEN_XSIZE - 1;
+        while (left < right) {
+            const uint16 pixel = *left;
+            *left++            = *right;
+            *right--           = pixel;
+        }
+    }
+}
+#endif
+
 void RSDK::Legacy::DrawRectangle(int32 XPos, int32 YPos, int32 width, int32 height, int32 R, int32 G, int32 B, int32 A)
 {
     if (A > 0xFF)

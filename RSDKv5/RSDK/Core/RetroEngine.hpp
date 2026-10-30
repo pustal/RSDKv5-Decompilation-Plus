@@ -243,6 +243,14 @@ enum GameRegions {
 #define RETRO_USE_MOD_LOADER (!RETRO_USE_ORIGINAL_CODE && 1)
 #endif
 
+// Plus: the retro games (Sonic 1, 2 and CD) next to Sonic Mania, with save
+// slots, Sonic Origins' modes and Sonic Mania's audio, managed from the Plus
+// menu (see RSDK/Plus/Plus.hpp). It needs the legacy cores (v5U) and the mod
+// loader (whose save-file redirection keeps each game's saves apart).
+#ifndef RETRO_USE_PLUS
+#define RETRO_USE_PLUS (RETRO_REV0U && RETRO_USE_MOD_LOADER)
+#endif
+
 // Defines the version of the mod loader, this should be changed ONLY if the ModFunctionTable is updated in any way
 #ifndef RETRO_MOD_LOADER_VER
 #define RETRO_MOD_LOADER_VER (2)
@@ -732,5 +740,9 @@ void SendQuitMsg();
 } // namespace RSDK
 
 #include "Link.hpp"
+
+#if RETRO_USE_PLUS
+#include "RSDK/Plus/Plus.hpp"
+#endif
 
 #endif //! RETROENGINE_H

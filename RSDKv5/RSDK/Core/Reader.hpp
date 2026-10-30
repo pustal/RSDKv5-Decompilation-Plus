@@ -34,7 +34,9 @@ namespace RSDK
 #define RSDK_SIGNATURE_DATA (0x61746144) // "Data"
 #endif
 
-#define DATAFILE_COUNT (0x1000)
+// (Plus) Room for two packs at once: a retro game's data plus the pack
+// its music and sound effects come from (Game:extraDataFile in Settings.ini).
+#define DATAFILE_COUNT (0x4000)
 #define DATAPACK_COUNT (4)
 
 enum Scopes {
@@ -67,6 +69,12 @@ struct RSDKFileInfo {
     uint8 encrypted;
     uint8 useFileBuffer;
     int32 packID;
+    // (Plus) Set for files of an RSDKvB pack (the 2013 Sonic 1 and 2
+    // releases), whose keys come from the file size instead of its name.
+    uint8 sizeKeys;
+    // (Plus) Set for files of the audio pack (see LoadAudioDataPack):
+    // only found under Data/SoundFX/ and Data/Music/.
+    uint8 audioOnly;
 };
 
 struct RSDKContainer {
@@ -90,6 +98,24 @@ void DetectEngineVersion();
 #endif
 bool32 LoadDataPack(const char *filename, size_t fileOffset, bool32 useBuffer);
 bool32 OpenDataFile(FileInfo *info, const char *filename);
+
+// (Plus) Sonic Mania's pack lending its music and sound effects to a
+// retro game: loaded after the game's packs, and only looked at for paths
+// under Data/SoundFX/ and Data/Music/ so its other files can never stand in
+// for the retro game's own (Settings.ini Game:audioDataFile).
+bool32 LoadAudioDataPack(const char *filePath);
+
+#if RETRO_USE_PLUS
+// (Plus) Forgets every data pack (and frees those held in memory), so another
+// game's packs can be loaded in their place (RSDK::Plus game switching).
+void UnloadDataPacks();
+#endif
+
+// (Plus) Where a pack file would come from: DATAFILE_SOURCE_NONE,
+// DATAFILE_SOURCE_GAME (one of the game's packs) or DATAFILE_SOURCE_AUDIO
+// (the audio pack). Used to choose stand-ins for missing music and sounds.
+enum DataFileSources { DATAFILE_SOURCE_NONE, DATAFILE_SOURCE_GAME, DATAFILE_SOURCE_AUDIO };
+int32 FindDataFileSource(const char *filename);
 
 enum FileModes { FMODE_NONE, FMODE_RB, FMODE_WB, FMODE_RB_PLUS };
 

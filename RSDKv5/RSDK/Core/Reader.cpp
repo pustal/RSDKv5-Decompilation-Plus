@@ -80,7 +80,8 @@ void RSDK::DetectEngineVersion()
     }
     else {
         info.externalFile = true;
-        if (LoadFile(&info, dataPacks[dataPackCount - 1].name, FMODE_RB)) {
+        // (Plus) The first pack is the game; a later one only adds files.
+        if (LoadFile(&info, dataPacks[0].name, FMODE_RB)) {
             uint32 sig = ReadInt32(&info, false);
             if (sig == RSDK_SIGNATURE_RSDK) {
                 ReadInt8(&info); // 'v'
@@ -90,6 +91,7 @@ void RSDK::DetectEngineVersion()
                     default: break;
                     case '3': engine.version = 3; break;
                     case '4': engine.version = 4; break;
+                    case 'B': engine.version = 4; break; // (Plus) RSDKv4 packs of the 2013 releases
                     case '5': engine.version = 5; break;
                 }
             }
@@ -106,42 +108,66 @@ void RSDK::DetectEngineVersion()
 
 bool32 RSDK::LoadDataPack(const char *filePath, size_t fileOffset, bool32 useBuffer)
 {
+    // (Plus) A second pack may follow the first; keep within the tables.
+    if (dataPackCount >= DATAPACK_COUNT)
+        return false;
     MEM_ZERO(dataPacks[dataPackCount]);
     useDataPack = false;
     FileInfo info;
 
     char dataPackPath[0x100];
-    sprintf_s(dataPackPath, sizeof(dataPackPath), "%s%s", SKU::userFileDir, filePath);
+    // (Plus) An absolute path (a pack on a USB drive) is used as it is.
+    if (filePath[0] == '/')
+        sprintf_s(dataPackPath, sizeof(dataPackPath), "%s", filePath);
+    else
+        sprintf_s(dataPackPath, sizeof(dataPackPath), "%s%s", SKU::userFileDir, filePath);
 
     InitFileInfo(&info);
     info.externalFile = true;
     if (LoadFile(&info, dataPackPath, FMODE_RB)) {
         uint32 sig = ReadInt32(&info, false);
-        if (sig != RSDK_SIGNATURE_RSDK)
+        if (sig != RSDK_SIGNATURE_RSDK) {
+            // (Plus) Close the file, and keep any pack already loaded in use.
+            CloseFile(&info);
+            useDataPack = dataPackCount > 0;
             return false;
+        }
 
         useDataPack = true;
 
-        ReadInt8(&info); // 'v'
-        ReadInt8(&info); // version
+        ReadInt8(&info);                         // 'v'
+        const uint8 packVersion = ReadInt8(&info); // version
 
         strcpy(dataPacks[dataPackCount].name, dataPackPath);
 
         dataPacks[dataPackCount].fileCount = ReadInt16(&info);
+        // (Plus) Each pack's entries follow the previous packs' ones
+        // (upstream wrote every pack from index 0, so a second pack replaced
+        // the first's list). A lookup takes the first match, so files of an
+        // earlier pack win over a later one's.
+        if (dataFileListCount + dataPacks[dataPackCount].fileCount > DATAFILE_COUNT) {
+            PrintLog(PRINT_NORMAL, "Data pack %s has too many files for the file table", dataPackPath);
+            CloseFile(&info);
+            useDataPack = dataPackCount > 0;
+            return false;
+        }
         for (int32 f = 0; f < dataPacks[dataPackCount].fileCount; ++f) {
+            RSDKFileInfo *entry = &dataFileList[dataFileListCount + f];
             uint8 b[4];
             for (int32 y = 0; y < 4; y++) {
                 ReadBytes(&info, b, 4);
-                dataFileList[f].hash[y] = (b[0] << 24) | (b[1] << 16) | (b[2] << 8) | (b[3] << 0);
+                entry->hash[y] = (b[0] << 24) | (b[1] << 16) | (b[2] << 8) | (b[3] << 0);
             }
 
-            dataFileList[f].offset = ReadInt32(&info, false);
-            dataFileList[f].size   = ReadInt32(&info, false);
+            entry->offset = ReadInt32(&info, false);
+            entry->size   = ReadInt32(&info, false);
 
-            dataFileList[f].encrypted = (dataFileList[f].size & 0x80000000) != 0;
-            dataFileList[f].size &= 0x7FFFFFFF;
-            dataFileList[f].useFileBuffer = useBuffer;
-            dataFileList[f].packID        = dataPackCount;
+            entry->encrypted = (entry->size & 0x80000000) != 0;
+            entry->size &= 0x7FFFFFFF;
+            entry->useFileBuffer = useBuffer;
+            entry->packID        = dataPackCount;
+            entry->sizeKeys      = packVersion == 'B';
+            entry->audioOnly     = false; // (Plus) Set afterwards by LoadAudioDataPack.
         }
 
         dataPacks[dataPackCount].fileBuffer = NULL;
@@ -159,7 +185,8 @@ bool32 RSDK::LoadDataPack(const char *filePath, size_t fileOffset, bool32 useBuf
         return true;
     }
     else {
-        useDataPack = false;
+        // (Plus) A missing extra pack must not switch off the ones loaded.
+        useDataPack = dataPackCount > 0;
         return false;
     }
 }
@@ -173,6 +200,52 @@ inline bool ends_with(std::string const &value, std::string const &ending)
 }
 #endif
 
+// (Plus) True for paths the audio pack may serve (@p lowerPath is lower case).
+static bool32 IsAudioPath(const char *lowerPath)
+{
+    return strncmp(lowerPath, "data/soundfx/", 13) == 0 || strncmp(lowerPath, "data/music/", 11) == 0;
+}
+
+#if RETRO_USE_PLUS
+void RSDK::UnloadDataPacks()
+{
+    for (int32 p = 0; p < dataPackCount; ++p) {
+        if (dataPacks[p].fileBuffer) {
+            free(dataPacks[p].fileBuffer);
+            dataPacks[p].fileBuffer = NULL;
+        }
+    }
+    dataPackCount     = 0;
+    dataFileListCount = 0;
+    useDataPack       = false;
+}
+#endif
+
+bool32 RSDK::LoadAudioDataPack(const char *filePath)
+{
+    const int32 firstEntry = dataFileListCount;
+    // Never buffered: Sonic Mania's pack is far larger than a retro game's.
+    if (!LoadDataPack(filePath, 0, false))
+        return false;
+    for (int32 f = firstEntry; f < dataFileListCount; ++f) dataFileList[f].audioOnly = true;
+    return true;
+}
+
+int32 RSDK::FindDataFileSource(const char *filename)
+{
+    char hashBuffer[0x400];
+    StringLowerCase(hashBuffer, filename);
+    RETRO_HASH_MD5(hash);
+    GEN_HASH_MD5_BUFFER(hashBuffer, hash);
+
+    // Entries are in pack order, so the first match is the one OpenDataFile uses.
+    for (int32 f = 0; f < dataFileListCount; ++f) {
+        if (HASH_MATCH_MD5(hash, dataFileList[f].hash))
+            return dataFileList[f].audioOnly ? DATAFILE_SOURCE_AUDIO : DATAFILE_SOURCE_GAME;
+    }
+    return DATAFILE_SOURCE_NONE;
+}
+
 bool32 RSDK::OpenDataFile(FileInfo *info, const char *filename)
 {
     char hashBuffer[0x400];
@@ -184,6 +257,9 @@ bool32 RSDK::OpenDataFile(FileInfo *info, const char *filename)
         RSDKFileInfo *file = &dataFileList[f];
 
         if (!HASH_MATCH_MD5(hash, file->hash))
+            continue;
+        // (Plus) The audio pack only serves music and sound effects.
+        if (file->audioOnly && !IsAudioPath(hashBuffer))
             continue;
 
         info->usingFileBuffer = file->useFileBuffer;
@@ -211,7 +287,15 @@ bool32 RSDK::OpenDataFile(FileInfo *info, const char *filename)
         memset(info->encryptionKeyA, 0, 0x10 * sizeof(uint8));
         memset(info->encryptionKeyB, 0, 0x10 * sizeof(uint8));
         if (info->encrypted) {
-            GenerateELoadKeys(info, filename, info->fileSize);
+            if (file->sizeKeys) {
+                // (Plus) RSDKvB: key A from the size, key B from half the size plus one.
+                char sizeKey[0x10];
+                sprintf_s(sizeKey, sizeof(sizeKey), "%d", info->fileSize);
+                GenerateELoadKeys(info, sizeKey, (info->fileSize >> 1) + 1);
+            }
+            else {
+                GenerateELoadKeys(info, filename, info->fileSize);
+            }
             info->eKeyNo      = (info->fileSize / 4) & 0x7F;
             info->eKeyPosA    = 0;
             info->eKeyPosB    = 8;

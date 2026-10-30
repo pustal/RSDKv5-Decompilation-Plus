@@ -8,6 +8,7 @@ set(RETRO_REVISION 3 CACHE STRING "What revision to compile for. Defaults to v5U
 option(RETRO_DISABLE_PLUS "Disable plus. Should be set on for any public releases." OFF)
 
 option(RETRO_MOD_LOADER "Enables or disables the mod loader." ON)
+option(RETRO_PLUS "Enables this fork's Plus features: retro games, the Plus menu, Sonic Mania audio for retro games (needs v5U and the mod loader). Not the Sonic Mania Plus DLC, see RETRO_DISABLE_PLUS." ON)
 set(RETRO_MOD_LOADER_VER 2 CACHE STRING "Sets the mod loader version. Defaults to latest")
 
 option(RETRO_DISABLE_LOG "Disables the log. Defaults to OFF." OFF)
@@ -155,6 +156,7 @@ target_compile_definitions(RetroEngine PRIVATE
     RSDK_USE_${RETRO_SUBSYSTEM}=1
     
     RETRO_USE_MOD_LOADER=$<BOOL:${RETRO_MOD_LOADER}>
+    RETRO_USE_PLUS=$<AND:$<BOOL:${RETRO_PLUS}>,$<BOOL:${RETRO_MOD_LOADER}>,$<STREQUAL:${RETRO_REVISION},3>>
     RETRO_MOD_LOADER_VER=${RETRO_MOD_LOADER_VER}
 
     RETRO_STANDALONE=$<NOT:$<BOOL:${GAME_STATIC}>>

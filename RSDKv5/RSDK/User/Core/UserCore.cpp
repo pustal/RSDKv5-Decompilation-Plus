@@ -309,9 +309,23 @@ void RSDK::LoadSettingsINI()
         gameVerInfo.language = iniparser_getint(ini, "Game:language", LANGUAGE_EN);
 #endif
 
-        engine.devMenu = true;
-        if (LoadDataPack(iniparser_getstring(ini, "Game:dataFile", "Data.rsdk"), 0, useBuffer))
+        engine.devMenu          = true;
+        const char *dataFile    = iniparser_getstring(ini, "Game:dataFile", "Data.rsdk");
+        const bool32 dataLoaded = LoadDataPack(dataFile, 0, useBuffer);
+        if (dataLoaded) {
             engine.devMenu = iniparser_getboolean(ini, "Game:devMenu", false);
+            // (Plus) An optional second pack whose files fill in what the
+            // first lacks: Sonic Origins' data has no music or sound effects,
+            // which the earlier releases' packs supply.
+            const char *extraPack = iniparser_getstring(ini, "Game:extraDataFile", "");
+            if (extraPack && *extraPack && !LoadDataPack(extraPack, 0, useBuffer))
+                PrintLog(PRINT_NORMAL, "Could not load the extra data pack %s", extraPack);
+            // (Plus) Sonic Mania's pack, for the music and sound effects
+            // a retro game's packs lack (see LoadAudioDataPack).
+            const char *audioPack = iniparser_getstring(ini, "Game:audioDataFile", "");
+            if (audioPack && *audioPack && !LoadAudioDataPack(audioPack))
+                PrintLog(PRINT_NORMAL, "Could not load the audio data pack %s", audioPack);
+        }
 
 #if !RETRO_USE_ORIGINAL_CODE
         customSettings.region = iniparser_getint(ini, "Game:region", -1);
@@ -326,6 +340,12 @@ void RSDK::LoadSettingsINI()
 #if RETRO_REV0U
         customSettings.forceScripts = iniparser_getboolean(ini, "Game:txtScripts", false);
         engine.gameReleaseID        = iniparser_getint(ini, "Game:gameType", 1);
+#endif
+
+#if RETRO_USE_PLUS
+        // (Plus) The game to start with may be a retro game: its packs replace Sonic Mania's.
+        if (RSDK::Plus::OnStartupPacks(dataFile, dataLoaded, useBuffer))
+            engine.devMenu = iniparser_getboolean(ini, "Game:devMenu", false);
 #endif
 
         sprintf_s(gameLogicName, sizeof(gameLogicName), "%s", iniparser_getstring(ini, "Game:gameLogic", "Game"));
@@ -555,6 +575,11 @@ void RSDK::LoadSettingsINI()
 
         SaveSettingsINI(true);
         engine.devMenu = LoadDataPack("Data.rsdk", 0, useBuffer);
+#if RETRO_USE_PLUS
+        // (Plus) The game to start with may be a retro game: its packs replace Sonic Mania's.
+        if (RSDK::Plus::OnStartupPacks("Data.rsdk", engine.devMenu, useBuffer))
+            engine.devMenu = false;
+#endif
     }
 }
 
@@ -592,6 +617,11 @@ void RSDK::SaveSettingsINI(bool32 writeToFile)
             if (strcmp(iniparser_getstring(ini, "Game:dataFile", ";unknown;"), ";unknown;") != 0 || (!RETRO_USE_ORIGINAL_CODE && RETRO_REV0U)) {
                 WriteText(file, "dataFile=%s\n", iniparser_getstring(ini, "Game:dataFile", "Data.rsdk"));
             }
+            // (Plus) Keep the optional second pack (see LoadSettingsINI).
+            if (strcmp(iniparser_getstring(ini, "Game:extraDataFile", ""), "") != 0)
+                WriteText(file, "extraDataFile=%s\n", iniparser_getstring(ini, "Game:extraDataFile", ""));
+            if (strcmp(iniparser_getstring(ini, "Game:audioDataFile", ""), "") != 0)
+                WriteText(file, "audioDataFile=%s\n", iniparser_getstring(ini, "Game:audioDataFile", ""));
 
             if (strcmp(iniparser_getstring(ini, "Game:devMenu", ";unknown;"), ";unknown;") != 0 || (!RETRO_USE_ORIGINAL_CODE && RETRO_REV0U))
                 WriteText(file, "devMenu=%s\n", (engine.devMenu ? "y" : "n"));

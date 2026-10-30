@@ -232,6 +232,21 @@ void RSDK::ProcessInput()
     RSDK::SKU::HandleSpecialKeys();
 #endif
 
+#if RETRO_USE_PLUS
+    // (Plus) Sonic Origins' Mirror mode: the picture is mirrored, so left and right swap.
+    if (RSDK::Plus::IsMirrored()) {
+        for (int32 c = 0; c <= PLAYER_COUNT; ++c) {
+            bool32 left                    = controller[c].keyLeft.press;
+            controller[c].keyLeft.press    = controller[c].keyRight.press;
+            controller[c].keyRight.press   = left;
+            left                           = stickL[c].keyLeft.press;
+            stickL[c].keyLeft.press        = stickL[c].keyRight.press;
+            stickL[c].keyRight.press       = left;
+            stickL[c].hDelta               = -stickL[c].hDelta;
+        }
+    }
+#endif
+
     for (int32 c = 0; c <= PLAYER_COUNT; ++c) {
         if (c <= 0 || inputSlots[c - 1] != INPUT_UNASSIGNED) {
             InputState *cont[] = {

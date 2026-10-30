@@ -72,6 +72,11 @@ void RSDK::Legacy::v3::DrawStageGFX()
     DrawObjectList(5);
     // Extra Origins draw list
     DrawObjectList(7);
+#if RETRO_USE_PLUS
+    // (Plus) Mirror mode: the stage so far, not the HUD and text drawn on list 6.
+    if (RSDK::Plus::IsMirrored())
+        MirrorFrameBuffer();
+#endif
     DrawObjectList(6);
 
     if (fadeMode > 0)

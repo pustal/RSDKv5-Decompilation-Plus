@@ -14,7 +14,30 @@ We do not condone using this project as a means for piracy in any form. This pro
 * Added various other backends to windows aside from the usual DirectX 9 backends
 
 ## If you are here for Sonic Mania:
-You have the option of building RSDKv5 alongside Mania in [the Sonic Mania Decompilation repo](https://github.com/RSDKModding/Sonic-Mania-Decompilation).
+You have the option of building RSDKv5 alongside Mania in [the Sonic Mania Decompilation repo](https://github.com/RSDKModding/Sonic-Mania-Decompilation), or [its Plus fork](https://github.com/pustal/Sonic-Mania-Decompilation-Plus), which builds this engine.
+
+# Plus: retro games next to Sonic Mania
+This fork (RSDKv5-Decompilation-Plus) adds, on top of the decompilation, a way to play **Sonic the Hedgehog, Sonic 2 and Sonic CD** next to Sonic Mania from your own data packs, managed from an in-game menu. It needs v5U (`RETRO_REVISION` 3) and the mod loader, and can be switched off with `RETRO_PLUS`. No game data is included.
+
+* **Retro games.** Put the packs in a `retro` folder next to Sonic Mania's `Data.rsdk`, under these names:
+
+  | File | Where it comes from |
+  |---|---|
+  | `sonic1-origins.rsdk`, `sonic2-origins.rsdk`, `soniccd-origins.rsdk` | `Sonic1u.rsdk`, `Sonic2u.rsdk`, `SonicCDu.rsdk` from Sonic Origins' `retro` folder |
+  | `sonic1-classic.rsdk`, `sonic2-classic.rsdk` | the 2013 releases' `Data.rsdk` (Android: `Data.rsdk.xmf` in the APK) |
+  | `soniccd-classic.rsdk` | Sonic CD (2011): the mobile app's `Data.rsdk.xmf`, or Steam's `Data.rsdk`. Converted in place to the format the engine opens the first time it is found |
+
+  With the Origins pack, a game is the Origins version and the earlier release's pack lends it its music and sounds. Without it, the 2013 Sonic 1 and 2 and the mobile Sonic CD play on their own (Sonic CD's Steam pack can only lend its sound: its scripts are stored under the PC build's names, which the engine does not load).
+* **Plus menu.** Press **Select** (Tab on a keyboard) in any game: Resume, Games, Achievements, Settings, Exit. It is drawn with the engine's developer font, so it works on every renderer.
+* **Switching games** from the Games page happens in-process (as the mod loader reloads a game), so it works on every platform. The engine starts with the last game played.
+* **Save slots and Sonic Origins' modes.** Starting Sonic 1 or 2 opens a save screen: a mode (with the Origins packs: Anniversary, Classic, Mirror, Boss Rush), four save slots (continue, new game, delete) and the character (with Origins: Knuckles & Tails, Amy, Amy & Tails too). Sonic CD goes to its own 2011 menu, after the mode with the Origins pack. Coins are shared by the three games, as in Origins. Mirror mode mirrors the stages and swaps left and right while the HUD stays readable; Boss Rush starts each act next to its boss.
+* **Achievements.** Each retro game has its own twelve achievements (those of the 2013 and 2011 releases), listed in the Plus menu, with a notice when one unlocks. Sonic CD's menu entry opens the same list.
+* **Sonic Mania's audio.** The Origins packs have no music or sounds, and even with the earlier releases' packs the sounds Origins added (the Drop Dash, Knuckles' and Amy's moves) are missing. Sonic Mania's pack fills those gaps: the same sound effects (or the nearest ones) and the zones Mania remixed (Green Hill, Chemical Plant, Oil Ocean, Stardust Speedway, Metallic Madness and the jingles), with Mania's loop points. An optional setting gives the other zones a Mania track of similar feel (Emerald Hill plays Green Hill, Casino Night plays Studiopolis...). The game's own packs always win.
+* **Saves.** Each retro game keeps its saves and achievements in `retro/<game>/`; settings and the coin count in `Plus.ini`.
+* **Fixes in the legacy cores:** scripts that read buttons without naming a controller (Sonic CD 2011's menus) now get the player's input; Sonic 1 and 2's 2013 packs (RSDKvB) open, and their Ogg sound effects play.
+
+The code is in `RSDKv5/RSDK/Plus/` (one translation unit, included by `RetroEngine.cpp`); the engine calls it from places marked `(Plus)`.
+
 
 # How to Build
 
@@ -27,7 +50,7 @@ This project uses [CMake](https://cmake.org/), a versatile building system that 
 Instead, you will need to clone the repository using Git, which you can get [here](https://git-scm.com/downloads).
 
 Clone the repo **recursively**, using:
-`git clone --recursive https://github.com/RSDKModding/RSDKv5-Decompilation`
+`git clone --recursive https://github.com/pustal/RSDKv5-Decompilation-Plus`
 
 If you've already cloned the repo, run this command inside of the repository:
 ```git submodule update --init```
@@ -83,6 +106,7 @@ The following cmake arguments are available when compiling:
 - `RETRO_DISABLE_PLUS`: Whether or not to disable the Plus DLC. Takes a boolean (on/off): build with `on` when compiling for distribution. Defaults to `off`.
 - `RETRO_MOD_LOADER`: Enables or disables the mod loader. Takes a boolean, defaults to `on`.
 - `RETRO_MOD_LOADER_VER`: Manually sets the mod loader version. Takes an integer, defaults to the current latest version.
+- `RETRO_PLUS`: Enables this fork's Plus features (retro games, the Plus menu, Sonic Mania's audio for the retro games). Needs `RETRO_REVISION` 3 and the mod loader. Not the Sonic Mania Plus DLC (see `RETRO_DISABLE_PLUS`). Takes a boolean, defaults to `on`.
 - `RETRO_DISABLE_LOG`: Disables the log. Not recommended unless it impacts performance. Takes a boolean, defaults to `off`.
 - `RETRO_SUBSYSTEM`: *Only change this if you know what you're doing.* Changes the subsystem that RSDKv5 will be built for. Defaults to the most standard subsystem for the platform.
 

@@ -48,6 +48,12 @@ void RSDK::Legacy::v3::ProcessStage()
 
     switch (stageMode) {
         case STAGEMODE_LOAD: // Startup
+#if RETRO_USE_PLUS
+            // (Plus) Save slots / the game's own menu when leaving the title screen:
+            // the stage loads once the Plus menu's save screen has been answered.
+            if (RSDK::Plus::OnLegacyStageLoad(3))
+                break;
+#endif
             fadeMode = 0;
             SetActivePalette(0, 0, 256);
             InitCameras();

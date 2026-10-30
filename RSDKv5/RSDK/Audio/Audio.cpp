@@ -408,6 +408,53 @@ void RSDK::LoadSfxToSlot(char *filename, uint8 slot, uint8 plays, uint8 scope)
 #endif
         }
 #if !RETRO_USE_ORIGINAL_CODE
+        else if (type == 'g' || type == 'G') {
+            // (Plus) Ogg Vorbis sound effects, as in the RSDKv4 packs of
+            // the 2013 Sonic 1 and 2 releases (RSDKv5 games only use .wav).
+            // Decoded once into the same mono float format as a .wav effect;
+            // the first channel is kept and the rate converted to the mixer's.
+            uint8 *oggData = (uint8 *)malloc(info.fileSize);
+            int32 error    = 0;
+            stb_vorbis *ogg = NULL;
+            if (oggData && ReadBytes(&info, oggData, info.fileSize) == (size_t)info.fileSize)
+                ogg = stb_vorbis_open_memory(oggData, info.fileSize, &error, NULL);
+
+            if (ogg) {
+                const stb_vorbis_info oggInfo = stb_vorbis_get_info(ogg);
+                const uint32 sourceLength     = stb_vorbis_stream_length_in_samples(ogg);
+                float *source                 = sourceLength ? (float *)malloc(sizeof(float) * sourceLength) : NULL;
+                const int32 decoded           = source ? stb_vorbis_get_samples_float_interleaved(ogg, 1, source, sourceLength) : 0;
+
+                if (decoded > 0 && oggInfo.sample_rate > 0) {
+                    const double step   = oggInfo.sample_rate / (double)AUDIO_FREQUENCY;
+                    const uint32 length = (uint32)(decoded / step);
+                    AllocateStorage((void **)&sfxList[slot].buffer, sizeof(float) * length, DATASET_SFX, false);
+                    sfxList[slot].length = length;
+
+                    float *buffer = (float *)sfxList[slot].buffer;
+                    for (uint32 s = 0; s < length; ++s) {
+                        // Linear interpolation between the two nearest source samples.
+                        const double pos  = s * step;
+                        const int32 index = (int32)pos;
+                        const float frac  = (float)(pos - index);
+                        const float a     = source[index];
+                        const float b     = index + 1 < decoded ? source[index + 1] : a;
+                        *buffer++         = (a + (b - a) * frac) * 0.75f; // Same level as .wav effects.
+                    }
+                }
+                else {
+                    sfxList[slot].scope = SCOPE_NONE; // Never play a half-made effect.
+                    PrintLog(PRINT_ERROR, "Unable to decode sfx: %s", filename);
+                }
+                free(source);
+                stb_vorbis_close(ogg);
+            }
+            else {
+                sfxList[slot].scope = SCOPE_NONE;
+                PrintLog(PRINT_ERROR, "Unable to read sfx: %s (vorbis error %d)", filename, error);
+            }
+            free(oggData);
+        }
         else {
             // what the
             PrintLog(PRINT_ERROR, "Could not find header in sfx: %s", filename);

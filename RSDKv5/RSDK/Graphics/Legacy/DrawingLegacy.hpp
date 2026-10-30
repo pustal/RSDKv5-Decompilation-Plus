@@ -52,6 +52,10 @@ void Draw3DFloorLayer(int32 layerID);
 void Draw3DSkyLayer(int32 layerID);
 
 // Shape Drawing
+#if RETRO_USE_PLUS
+// (Plus) Reflects the frame drawn so far horizontally, for Mirror mode.
+void MirrorFrameBuffer();
+#endif
 void DrawRectangle(int32 XPos, int32 YPos, int32 width, int32 height, int32 R, int32 G, int32 B, int32 A);
 void DrawTintRectangle(int32 XPos, int32 YPos, int32 width, int32 height);
 void DrawScaledTintMask(int32 direction, int32 XPos, int32 YPos, int32 pivotX, int32 pivotY, int32 scaleX, int32 scaleY, int32 width, int32 height,

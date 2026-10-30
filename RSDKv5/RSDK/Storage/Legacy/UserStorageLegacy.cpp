@@ -41,7 +41,15 @@ bool32 RSDK::Legacy::WriteSaveRAM() { return SKU::SaveUserFile("SGame.bin", save
 void RSDK::Legacy::v3::SetAchievement(int32 achievementID, int32 achievementDone)
 {
     PrintLog(PRINT_NORMAL, "[RSDKv3] Achieved achievement: %d (%d)!", achievementID, achievementDone);
+#if RETRO_USE_PLUS
+    // (Plus) Record it in the game's list and save it.
+    RSDK::Plus::OnLegacyAchievement(achievementID, achievementDone);
+#endif
 }
+#if RETRO_USE_PLUS
+void RSDK::Legacy::v3::LoadAchievementsMenu() { RSDK::Plus::ShowLegacyAchievements(); }
+void RSDK::Legacy::v3::LoadLeaderboardsMenu() { RSDK::Plus::ShowLegacyLeaderboards(); }
+#endif
 void RSDK::Legacy::v3::SetLeaderboard(int32 leaderboardID, int32 score)
 {
     PrintLog(PRINT_NORMAL, "[RSDKv3] Setting Leaderboard %d score to %d...", leaderboardID, score);
@@ -56,6 +64,11 @@ void RSDK::Legacy::v4::SetAchievement(int32 *achievementID, int32 *status)
 
     PrintLog(PRINT_NORMAL, "[RSDKv4] Achieved achievement: %d (%d)!", *achievementID, *status);
 
+#if RETRO_USE_PLUS
+    // (Plus) Record it in the game's list and save it.
+    RSDK::Plus::OnLegacyAchievement(*achievementID, *status);
+    return;
+#endif
     if ((uint32)*achievementID >= achievementList.size())
         return;
 

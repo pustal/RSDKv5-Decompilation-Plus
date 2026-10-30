@@ -44,8 +44,22 @@ int32 RSDK::Legacy::PlayMusic(int32 trackID)
         if (!loopPoint && track->trackLoop)
             loopPoint = 1;
 
+        const char *fileName = track->fileName;
+#if RETRO_USE_PLUS
+        // (Plus) A track the game's packs lack may come from Sonic Mania.
+        char replacement[0x40];
+        if (RSDK::Plus::ResolveLegacyMusic(track->fileName, replacement, sizeof(replacement), &loopPoint)) {
+            if (!replacement[0]) {
+                StopChannel(musicChannel);
+                musicCurrentTrack = trackID;
+                return musicChannel;
+            }
+            fileName = replacement;
+        }
+#endif
+
         musicCurrentTrack = trackID;
-        musicChannel      = PlayStream(track->fileName, musicChannel, startPos, loopPoint, true);
+        musicChannel      = PlayStream(fileName, musicChannel, startPos, loopPoint, true);
         musicVolume       = 100;
     }
 
@@ -79,8 +93,17 @@ void RSDK::Legacy::v4::SwapMusicTrack(const char *filePath, uint8 trackID, uint3
 
 void RSDK::Legacy::LoadSfx(char *filename, uint8 slot, uint8 scope)
 {
-    if (sfxList[slot].scope == SCOPE_NONE)
+    if (sfxList[slot].scope == SCOPE_NONE) {
+#if RETRO_USE_PLUS
+        // (Plus) A sound effect the game's packs lack may come from Sonic Mania.
+        char replacement[0x40];
+        if (RSDK::Plus::ResolveLegacySfx(filename, replacement, sizeof(replacement))) {
+            LoadSfxToSlot(replacement, slot, 1, scope);
+            return;
+        }
+#endif
         LoadSfxToSlot(filename, slot, 1, scope);
+    }
 }
 
 void RSDK::Legacy::v3::SetSfxAttributes(int32 channelID, int32 loop, int8 pan)
