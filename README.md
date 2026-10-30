@@ -1,6 +1,9 @@
 ![header](header.png?raw=true)
 
-A complete decompilation of Retro Engine v5 and v5Ultimate.
+A complete decompilation of Retro Engine v5 and v5Ultimate that ports features I introduced in my [SonicWebMania](https://github.com/pustal/SonicWebMania) project.
+
+Fork of [RSDKModding](https://github.com/RSDKModding/)'s of [RSDK v5U Decompilation](https://github.com/RSDKModding/RSDKv5-Decompilation).
+
 
 # **SUPPORT THE DEVELOPERS OF THE RETRO ENGINE**
 We do not own the Retro Engine in any way, shape or form, and this project would not have been possible had they not developed RSDKv5(U) in the first place. Retro Engine is currently owned by [Evening Star](https://eveningstar.studio/); we highly urge you to follow & support their projects if you enjoyed this project of ours!
@@ -110,25 +113,5 @@ The following cmake arguments are available when compiling:
 - `RETRO_DISABLE_LOG`: Disables the log. Not recommended unless it impacts performance. Takes a boolean, defaults to `off`.
 - `RETRO_SUBSYSTEM`: *Only change this if you know what you're doing.* Changes the subsystem that RSDKv5 will be built for. Defaults to the most standard subsystem for the platform.
 
-## Other Platforms
-Currently, the only officially supported platforms are the ones listed above.
-
-**However,** since release, there have been a multitude of forks made by the community (keep in mind that many of these ports are still a WIP, and some may be out of date): 
-* ### [WebASM](https://github.com/heyjoeway/RSDKv5-Decompilation/tree/emscripten) by heyjoeway 
-* ### [New 3DS](https://github.com/SaturnSH2x2/RSDKv5-Decompilation/tree/3ds-main) by SaturnSH2x2
-* ### [Wii U](https://github.com/Radfordhound/RSDKv5-Decompilation) by Radfordhound
-* ### [Wii U](https://github.com/Clownacy/Sonic-Mania-Decompilation) by Clownacy
-* ### [Wii](https://github.com/Mefiresu/RSDKv5-Decompilation/tree/dev/wii-port) by Mefiresu
-* ### [Vita](https://github.com/SonicMastr/Sonic-Mania-Vita) by SonicMastr
-* #### and a [general optimization fork](https://github.com/smb123w64gb/RSDKv5-Decompilation) by smb123w64gb
-
 # FAQ
 You can find the FAQ [here](./FAQ.md).
-
-# Special Thanks
-* [st×tic](https://github.com/stxticOVFL) for leading ModAPI development, porting to other platforms, general decompilation assistance, helping me fix bugs, tweaking up my sometimes sloppy code and generally being really helpful and fun to work with on this project
-* [biscuitball425](https://github.com/biscuitball425) for making v5 and v5U assets with st×tic such as the header and icons
-* Everyone in the [Retro Engine Modding Server](https://dc.railgun.works/retroengine) for being supportive of me and for giving me a place to show off these things that I've found
-
-# Contact:
-Join the [Retro Engine Modding Discord Server](https://dc.railgun.works/retroengine) for any extra questions you may need to know about the decompilation or modding it.
