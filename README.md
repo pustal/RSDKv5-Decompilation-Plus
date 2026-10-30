@@ -1,6 +1,9 @@
 ![header](header.png?raw=true)
 
-A complete decompilation of Retro Engine v5 and v5Ultimate.
+A complete decompilation of Retro Engine v5 and v5Ultimate that ports features I introduced in my [SonicWebMania](https://github.com/pustal/SonicWebMania) project.
+
+Fork of [RSDKModding](https://github.com/RSDKModding/)'s of [RSDK v5U Decompilation](https://github.com/RSDKModding/RSDKv5-Decompilation).
+
 
 # **SUPPORT THE DEVELOPERS OF THE RETRO ENGINE**
 We do not own the Retro Engine in any way, shape or form, and this project would not have been possible had they not developed RSDKv5(U) in the first place. Retro Engine is currently owned by [Evening Star](https://eveningstar.studio/); we highly urge you to follow & support their projects if you enjoyed this project of ours!
