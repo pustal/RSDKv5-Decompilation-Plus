@@ -670,3 +670,33 @@ void RSDK::Plus::OnLegacyAchievement(int32 id, int32 status)
 void RSDK::Plus::ShowLegacyAchievements() { RSDK::Plus::OpenAchievementsPage(); }
 
 void RSDK::Plus::ShowLegacyLeaderboards() { RSDK::Plus::Notify("Leaderboards need an online service"); }
+
+void RSDK::Plus::ShareInputWithPlayer1()
+{
+    // Sonic Mania assigns controllers to players itself; leave it alone.
+    if (engine.version == 5)
+        return;
+
+    // The devices have written what they hold into CONT_ANY ("press" holds the
+    // raw state until ProcessInput() turns it into press and down).
+    const ControllerState &any = controller[CONT_ANY];
+    ControllerState &player    = controller[CONT_P1];
+    InputState ControllerState::*const keys[] = {
+        &ControllerState::keyUp, &ControllerState::keyDown, &ControllerState::keyLeft,  &ControllerState::keyRight,
+        &ControllerState::keyA,  &ControllerState::keyB,    &ControllerState::keyC,     &ControllerState::keyX,
+        &ControllerState::keyY,  &ControllerState::keyZ,    &ControllerState::keyStart, &ControllerState::keySelect,
+    };
+    for (InputState ControllerState::*key : keys) (player.*key).press |= (any.*key).press;
+
+    // The left stick: its directions, and its position when player 1's own is at rest.
+    const AnalogState &anyStick = stickL[CONT_ANY];
+    AnalogState &playerStick    = stickL[CONT_P1];
+    playerStick.keyUp.press |= anyStick.keyUp.press;
+    playerStick.keyDown.press |= anyStick.keyDown.press;
+    playerStick.keyLeft.press |= anyStick.keyLeft.press;
+    playerStick.keyRight.press |= anyStick.keyRight.press;
+    if (playerStick.hDelta == 0.0f && playerStick.vDelta == 0.0f) {
+        playerStick.hDelta = anyStick.hDelta;
+        playerStick.vDelta = anyStick.vDelta;
+    }
+}

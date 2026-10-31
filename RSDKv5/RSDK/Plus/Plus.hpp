@@ -69,6 +69,14 @@ void DrawOverlay();
  */
 void ApplyTouchControls();
 
+/**
+ * Called by ProcessInput() after ApplyTouchControls(): in a retro game, player
+ * 1 also hears every input device, as the original games did (they have no
+ * controller assignment, and the legacy cores read no other player's input),
+ * so a controller works whichever device was used first (PlusRetro.cpp).
+ */
+void ShareInputWithPlayer1();
+
 /** True when a game switch chosen in the Plus menu waits to be applied (outside the menu). */
 bool32 SwitchPending();
 

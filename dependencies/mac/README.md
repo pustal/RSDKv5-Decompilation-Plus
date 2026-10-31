@@ -18,5 +18,9 @@ Put these in this folder (Git ignores them):
 ## Compiling
 
 1. Open `RSDKv5U.xcodeproj`, set signing to "Sign to Run Locally" if Xcode asks, and build the **RSDKv5U** scheme (Product > Scheme > Edit Scheme > Run > Release for a release build). `RSDKv5.xcodeproj` builds the older RSDKv5 engine instead.
-2. Build the game's library from its own project: for Sonic Mania, `SonicMania.xcodeproj`'s **SonicMania (v5U)** scheme, which makes `Game.dylib`. (The **SonicMania** scheme builds for the older engine; its library does not work with RSDKv5U.)
-3. Put `Game.dylib`, the game's `Data.rsdk` (and, for Plus, the `retro` folder) in `~/Library/Application Support/RSDKv5/`. The engine creates that folder on its first run.
+2. Build the game's library from its own project: for Sonic Mania, `SonicMania.xcodeproj`'s **SonicMania** scheme (in Release), which makes `Game.dylib` for RSDKv5U. (**SonicMania (v5)** and **SonicMania (PrePlus)** build for the older engine; their library does not work with RSDKv5U, which then stops at "Mod loading done!".)
+3. Put `Game.dylib` and the game's `Data.rsdk` (and, for Plus, the `retro` folder) either:
+   * **next to `RSDKv5U.app`**, in any folder (a USB drive works too): the engine uses the app's folder when it holds `Data.rsdk` or `retro`; or
+   * in `~/Library/Application Support/RSDKv5/`, used otherwise (created on the first run).
+
+   Settings, saves and `log.txt` go to the same folder.

@@ -1156,10 +1156,20 @@ void RSDK::SKU::InitUserDirectory()
     char buffer[0x100];
     sprintf_s(buffer, sizeof(buffer), "%s/RSDKv5/", getResourcesPath());
 #if !RETRO_USE_ORIGINAL_CODE
-    // (Plus) ~/Library/Application Support/RSDKv5/ does not exist on a first
+    // (Plus) Portable use: when the folder RSDKv5U.app is in holds the game
+    // (Data.rsdk, or the retro games' folder), that folder is used, as the
+    // other desktop builds use theirs. Otherwise the usual place,
+    // ~/Library/Application Support/RSDKv5/, which does not exist on a first
     // run: create it, or Settings.ini and the saves cannot be written there.
     std::error_code error;
-    std::filesystem::create_directories(buffer, error);
+    const std::filesystem::path appFolder = getAppFolderPath();
+    if (!appFolder.empty()
+        && (std::filesystem::exists(appFolder / "Data.rsdk", error) || std::filesystem::is_directory(appFolder / "retro", error))) {
+        sprintf_s(buffer, sizeof(buffer), "%s/", appFolder.c_str());
+    }
+    else {
+        std::filesystem::create_directories(buffer, error);
+    }
 #endif
     SKU::SetUserFileCallbacks(buffer, NULL, NULL);
 

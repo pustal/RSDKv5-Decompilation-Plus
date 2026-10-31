@@ -413,7 +413,10 @@ void RSDK::Plus::ApplyPendingSwitch()
 
     // Controllers as at startup: each player slot takes the next device that
     // is used. Sonic Mania assigns them itself and may have left player 1
-    // without one, which the legacy games' scripts would then never hear.
+    // without one. ResetInputSlotAssignments() also frees the devices it
+    // assigned (isAssigned), which auto-assignment would otherwise skip: the
+    // controller Mania gave player 1 would never reach the next game's.
+    ResetInputSlotAssignments();
     for (int32 i = 0; i < PLAYER_COUNT; ++i) inputSlots[i] = INPUT_AUTOASSIGN;
 
     EnterGame(target);
