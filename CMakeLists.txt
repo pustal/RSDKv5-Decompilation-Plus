@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(RetroEngine)
 
-set(DECOMP_VERSION 1.1.1)
+set(DECOMP_VERSION 1.2.0)
 
 set(RETRO_REVISION 3 CACHE STRING "What revision to compile for. Defaults to v5U = 3")
 option(RETRO_DISABLE_PLUS "Disable plus. Should be set on for any public releases." OFF)

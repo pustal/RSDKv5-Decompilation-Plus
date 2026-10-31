@@ -23,6 +23,8 @@
  *   their packs lack (PlusAudio.cpp).
  * - The Plus menu (PlusMenu.cpp), opened with Select (Tab on a keyboard),
  *   drawn with the engine's developer font so it works on every renderer.
+ * - Touch controls on Android (PlusTouch.cpp): a button that fades out,
+ *   showing a pad and buttons over the game, with an adjustable opacity.
  *
  * The engine calls the functions below from a few places, all marked
  * "(Plus)" and guarded by RETRO_USE_PLUS.
@@ -56,8 +58,16 @@ bool32 OnStartupPacks(const char *maniaDataFile, bool32 maniaLoaded, bool32 useB
 /** Per frame, after the engine has run: the Plus menu's button, notices, a pending game switch. */
 void Update();
 
-/** Per frame, before the frame is shown: draws the current notice over the game. */
+/** Per frame, before the frame is shown: draws the current notice and the touch controls over the game. */
 void DrawOverlay();
+
+/**
+ * Called by ProcessInput() once the input devices have been read: the touch
+ * controls' button and, when shown, their pad and buttons, which press the
+ * same keys a controller would (PlusTouch.cpp). Does nothing on platforms
+ * without them.
+ */
+void ApplyTouchControls();
 
 /** True when a game switch chosen in the Plus menu waits to be applied (outside the menu). */
 bool32 SwitchPending();
@@ -118,7 +128,9 @@ bool32 ResolveLegacySfx(const char *name, char *out, int32 outSize);
 /**
  * A retro game is starting music track @p name (relative to Data/Music/)
  * that loops at sample @p *loopPoint: when its packs lack it, picks a Sonic
- * Mania stand-in with its own loop point, or silence (PlusAudio.cpp).
+ * Mania stand-in with its own loop point, or silence; with "Sonic Mania
+ * remixes" on, the zones Mania remixed play the remix even when the packs
+ * have the original (PlusAudio.cpp).
  *
  * @return True with the track in @p out ("" to play nothing).
  */

@@ -10,7 +10,8 @@
 //   - Main: Resume, Games, Achievements, Settings, Exit;
 //   - Games: Sonic Mania and the retro games found, to switch to;
 //   - Achievements: the running game's list;
-//   - Settings: Sonic Mania audio in the retro games, similar music;
+//   - Settings: Sonic Mania audio in the retro games, similar music, Mania's
+//     remixes, and the touch controls (Android);
 //   - the save screen of the retro games (PlusRetro.cpp): mode, slots, a
 //     slot's actions, character.
 // Select (Tab on a keyboard) opens and closes it; Back goes up a page.
@@ -373,27 +374,75 @@ void Page_Achievements()
 // Settings
 // ---------------------
 
+/** The Settings page's entries (which ones show depends on the platform). */
+enum SettingsItem {
+    SETTING_MANIAAUDIO,
+    SETTING_SIMILARMUSIC,
+    SETTING_REMIXES,
+    SETTING_TOUCHCONTROLS,
+    SETTING_TOUCHOPACITY,
+    SETTING_BACK,
+};
+
+/** The Settings page's entries, in order. */
+std::vector<SettingsItem> SettingsItems()
+{
+    std::vector<SettingsItem> items = { SETTING_MANIAAUDIO, SETTING_SIMILARMUSIC, SETTING_REMIXES };
+    if (TouchControlsAvailable()) {
+        items.push_back(SETTING_TOUCHCONTROLS);
+        items.push_back(SETTING_TOUCHOPACITY);
+    }
+    items.push_back(SETTING_BACK);
+    return items;
+}
+
+/** "ON" or "OFF". */
+const char *OnOff(bool on) { return on ? "ON" : "OFF"; }
+
 void Page_Settings()
 {
     BeginPage();
-    const std::vector<std::string> items = {
-        std::string("Sonic Mania audio in retro games: ") + (ManiaAudioEnabled() ? "ON" : "OFF"),
-        std::string("Similar Mania music: ") + (SimilarMusicEnabled() ? "ON" : "OFF"),
-        "Back",
-    };
-    std::vector<uint32> colors = { kItemColor, ManiaAudioEnabled() ? kItemColor : kDimColor, kItemColor };
+    const std::vector<SettingsItem> ids = SettingsItems();
+    std::vector<std::string> items;
+    std::vector<uint32> colors;
+    for (SettingsItem id : ids) {
+        switch (id) {
+            case SETTING_MANIAAUDIO: items.push_back(std::string("Sonic Mania audio in retro games: ") + OnOff(ManiaAudioEnabled())); break;
+            case SETTING_SIMILARMUSIC: items.push_back(std::string("Similar Mania music: ") + OnOff(SimilarMusicEnabled())); break;
+            case SETTING_REMIXES: items.push_back(std::string("Sonic Mania remixes: ") + OnOff(RemixesEnabled())); break;
+            case SETTING_TOUCHCONTROLS: items.push_back(std::string("Touch controls: ") + OnOff(TouchControlsShown())); break;
+            case SETTING_TOUCHOPACITY: items.push_back("Touch controls opacity: " + std::to_string(TouchOpacity()) + "%"); break;
+            case SETTING_BACK: items.push_back("Back"); break;
+        }
+        // The music options need Sonic Mania's audio.
+        const bool needsAudio = id == SETTING_SIMILARMUSIC || id == SETTING_REMIXES;
+        colors.push_back(needsAudio && !ManiaAudioEnabled() ? kDimColor : kItemColor);
+    }
 
     int32 y = DrawHeader("SETTINGS", "");
     y       = DrawList(items, colors, y);
-    const char *notes[] = {
-        "With Sonic Mania's Data.rsdk: the sounds a retro game's packs lack (all of them with the Origins pack alone; the "
-        "Drop Dash, Knuckles' and Amy's moves otherwise) and the zones Mania remixed.",
-        "Zones Mania has no version of play a Mania track of similar feel (Emerald Hill plays Green Hill, Casino Night "
-        "Studiopolis...).",
-        "",
-    };
-    y = DrawNote(notes[menu.selection], y, kItemColor);
-    DrawNote("Applies the next time a retro game starts.", y, kDimColor);
+    const SettingsItem selected = ids[menu.selection];
+    const char *note            = "";
+    switch (selected) {
+        case SETTING_MANIAAUDIO:
+            note = "With Sonic Mania's Data.rsdk: the sounds a retro game's packs lack (all of them with the Origins pack "
+                   "alone; the Drop Dash, Knuckles' and Amy's moves otherwise) and the zones Mania remixed.";
+            break;
+        case SETTING_SIMILARMUSIC:
+            note = "Zones Mania has no version of play a Mania track of similar feel (Emerald Hill plays Green Hill, "
+                   "Casino Night Studiopolis...).";
+            break;
+        case SETTING_REMIXES:
+            note = "Green Hill, Chemical Plant, Oil Ocean, Stardust Speedway and Metallic Madness play Sonic Mania's "
+                   "remix even when the earlier release's pack has the original.";
+            break;
+        case SETTING_TOUCHCONTROLS: note = "A pad and buttons over the game. The button at the top right also shows and hides them."; break;
+        case SETTING_TOUCHOPACITY: note = "Left and right change it; at 0% the controls still work, unseen."; break;
+        case SETTING_BACK: break;
+    }
+    y = DrawNote(note, y, kItemColor);
+    if (selected <= SETTING_REMIXES)
+        DrawNote("Applies the next time a retro game starts.", y, kDimColor);
 
     const MenuInput input = ReadMenuInput();
     MoveSelection(input, (int32)items.size());
@@ -401,17 +450,27 @@ void Page_Settings()
         CloseMenu();
         return;
     }
-    if (input.back || (input.confirm && menu.selection == 2)) {
+    if (input.back || (input.confirm && selected == SETTING_BACK)) {
         GoToPage(Page_Main);
         menu.selection = 3;
         return;
     }
     if (!(input.confirm || input.left || input.right))
         return;
-    if (menu.selection == 0)
-        SetManiaAudioEnabled(!ManiaAudioEnabled());
-    else if (menu.selection == 1 && ManiaAudioEnabled())
-        SetSimilarMusicEnabled(!SimilarMusicEnabled());
+    switch (selected) {
+        case SETTING_MANIAAUDIO: SetManiaAudioEnabled(!ManiaAudioEnabled()); break;
+        case SETTING_SIMILARMUSIC:
+            if (ManiaAudioEnabled())
+                SetSimilarMusicEnabled(!SimilarMusicEnabled());
+            break;
+        case SETTING_REMIXES:
+            if (ManiaAudioEnabled())
+                SetRemixesEnabled(!RemixesEnabled());
+            break;
+        case SETTING_TOUCHCONTROLS: SetTouchControlsShown(!TouchControlsShown()); break;
+        case SETTING_TOUCHOPACITY: StepTouchOpacity(input.left ? -1 : 1); break;
+        case SETTING_BACK: break;
+    }
 }
 
 // ---------------------

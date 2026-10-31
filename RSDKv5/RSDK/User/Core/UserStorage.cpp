@@ -1,5 +1,7 @@
 #include "RSDK/Core/RetroEngine.hpp"
 
+#include <filesystem>
+
 #if RETRO_REV02
 
 // ====================
@@ -1153,6 +1155,12 @@ void RSDK::SKU::InitUserDirectory()
 
     char buffer[0x100];
     sprintf_s(buffer, sizeof(buffer), "%s/RSDKv5/", getResourcesPath());
+#if !RETRO_USE_ORIGINAL_CODE
+    // (Plus) ~/Library/Application Support/RSDKv5/ does not exist on a first
+    // run: create it, or Settings.ini and the saves cannot be written there.
+    std::error_code error;
+    std::filesystem::create_directories(buffer, error);
+#endif
     SKU::SetUserFileCallbacks(buffer, NULL, NULL);
 
 #elif RETRO_PLATFORM == RETRO_ANDROID

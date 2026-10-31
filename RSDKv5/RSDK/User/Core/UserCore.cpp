@@ -603,6 +603,16 @@ void RSDK::SaveSettingsINI(bool32 writeToFile)
 
         dictionary *ini = iniparser_load(pathBuffer);
         FileIO *file    = fOpen(pathBuffer, "wb");
+#if !RETRO_USE_ORIGINAL_CODE
+        // (Plus) The user folder may not be writable (or not exist yet): skip
+        // saving rather than writing through a null file and crashing.
+        if (!file) {
+            PrintLog(PRINT_NORMAL, "Could not write %s", pathBuffer);
+            if (ini)
+                iniparser_freedict(ini);
+            return;
+        }
+#endif
 
         // ================
         // SIGNATURE

@@ -11,7 +11,11 @@
 //   lastGame=sonic1        the game to start with ("mania" or a retro game)
 //   maniaAudio=1           Sonic Mania's audio fills the retro games' gaps
 //   maniaSimilarMusic=0    ...including similar-feel music for other zones
+//   maniaRemixes=0         the zones Mania remixed play the remix, even
+//                          when the retro game's packs have the original
 //   coins=0                Sonic Origins' coins, shared by the retro games
+//   touchControls=0        the touch controls are shown (Android)
+//   touchOpacity=100       their opacity, in percent (0 hides them)
 //   ; end                  marks the end (see SaveConfig())
 
 #include <cstdio>
@@ -30,8 +34,14 @@ struct Config {
     std::string lastGame = kManiaId;
     bool maniaAudio      = true;
     bool similarMusic    = false;
+    bool maniaRemixes    = false;
     int32 coins          = 0;
+    bool touchControls   = false;
+    int32 touchOpacity   = 100; ///< Percent, a multiple of kTouchOpacityStep.
 };
+
+/** The opacity choices of the touch controls, in percent. */
+const int32 kTouchOpacityStep = 25;
 
 /** Everything Plus keeps for the session. */
 struct PlusState {
@@ -64,6 +74,18 @@ bool ManiaAvailable() { return plus.maniaAvailable; }
 const std::vector<RetroGame> &RetroGames() { return plus.games; }
 bool ManiaAudioEnabled() { return plus.config.maniaAudio; }
 bool SimilarMusicEnabled() { return plus.config.maniaAudio && plus.config.similarMusic; }
+bool RemixesEnabled() { return plus.config.maniaAudio && plus.config.maniaRemixes; }
+/**
+ * Whether this build has the touch controls (PlusTouch.cpp): Android by
+ * default; define PLUS_TOUCH_CONTROLS to 1 to try them elsewhere (a touch
+ * screen, or SDL2's mouse-as-touch).
+ */
+#ifndef PLUS_TOUCH_CONTROLS
+#define PLUS_TOUCH_CONTROLS (RETRO_PLATFORM == RETRO_ANDROID)
+#endif
+constexpr bool TouchControlsAvailable() { return PLUS_TOUCH_CONTROLS; }
+bool TouchControlsShown() { return plus.config.touchControls; }
+int32 TouchOpacity() { return plus.config.touchOpacity; }
 int32 Coins() { return plus.config.coins; }
 
 /** The retro game @p id with its packs, or null for Sonic Mania or an unknown id. */
@@ -119,8 +141,18 @@ void LoadConfig()
             plus.config.maniaAudio = ParseBool(value);
         else if (key == "maniaSimilarMusic")
             plus.config.similarMusic = ParseBool(value);
+        else if (key == "maniaRemixes")
+            plus.config.maniaRemixes = ParseBool(value);
         else if (key == "coins")
             plus.config.coins = atoi(value.c_str());
+        else if (key == "touchControls")
+            plus.config.touchControls = ParseBool(value);
+        else if (key == "touchOpacity") {
+            // Clamped and snapped to the menu's steps.
+            const int32 opacity       = atoi(value.c_str());
+            const int32 clamped       = opacity < 0 ? 0 : opacity > 100 ? 100 : opacity;
+            plus.config.touchOpacity = clamped / kTouchOpacityStep * kTouchOpacityStep;
+        }
     }
 }
 
@@ -135,7 +167,10 @@ void SaveConfig()
     text += "lastGame=" + plus.config.lastGame + "\n";
     text += std::string("maniaAudio=") + (plus.config.maniaAudio ? "1" : "0") + "\n";
     text += std::string("maniaSimilarMusic=") + (plus.config.similarMusic ? "1" : "0") + "\n";
+    text += std::string("maniaRemixes=") + (plus.config.maniaRemixes ? "1" : "0") + "\n";
     text += "coins=" + std::to_string(plus.config.coins) + "\n";
+    text += std::string("touchControls=") + (plus.config.touchControls ? "1" : "0") + "\n";
+    text += "touchOpacity=" + std::to_string(plus.config.touchOpacity) + "\n";
     text += std::string(kConfigEndLine) + "\n";
 
     PackFile out(UserPath(kConfigName), "wb");
@@ -161,6 +196,27 @@ void SetSimilarMusicEnabled(bool enabled)
     SaveConfig();
 }
 
+void SetRemixesEnabled(bool enabled)
+{
+    plus.config.maniaRemixes = enabled;
+    SaveConfig();
+}
+
+void SetTouchControlsShown(bool shown)
+{
+    plus.config.touchControls = shown;
+    SaveConfig();
+}
+
+/** Steps the touch controls' opacity by @p direction (+1 or -1) kTouchOpacityStep, wrapping around. */
+void StepTouchOpacity(int32 direction)
+{
+    const int32 steps         = 100 / kTouchOpacityStep + 1;
+    const int32 index         = (plus.config.touchOpacity / kTouchOpacityStep + direction + steps) % steps;
+    plus.config.touchOpacity = index * kTouchOpacityStep;
+    SaveConfig();
+}
+
 /** Asks for a switch to @p id, applied once the menu has closed. */
 void RequestSwitch(const std::string &id) { plus.pendingSwitch = id; }
 
@@ -173,6 +229,7 @@ void EnsureSaveFolder();
 #include "PlusAudio.cpp"
 #include "PlusRetro.cpp"
 #include "PlusMenu.cpp"
+#include "PlusTouch.cpp"
 
 namespace RSDK
 {
@@ -385,6 +442,7 @@ void RSDK::Plus::Update()
 
 void RSDK::Plus::DrawOverlay()
 {
+    DrawTouchControls();
     if (plus.noticeFrames <= 0 || !currentScreen)
         return;
     const std::vector<std::string> lines = WrapText(plus.notice, kTextChars);

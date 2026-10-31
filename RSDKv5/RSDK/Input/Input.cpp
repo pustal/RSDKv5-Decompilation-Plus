@@ -233,6 +233,10 @@ void RSDK::ProcessInput()
 #endif
 
 #if RETRO_USE_PLUS
+    // (Plus) The touch controls press keys like a controller (before Mirror
+    // mode swaps them, as it does a controller's).
+    RSDK::Plus::ApplyTouchControls();
+
     // (Plus) Sonic Origins' Mirror mode: the picture is mirrored, so left and right swap.
     if (RSDK::Plus::IsMirrored()) {
         for (int32 c = 0; c <= PLAYER_COUNT; ++c) {

@@ -4,3 +4,4 @@
 ![Ii]nfo.plist
 !cocoaHelpers.*
 !RSDKv5.entitlements
+!build-frameworks.sh
