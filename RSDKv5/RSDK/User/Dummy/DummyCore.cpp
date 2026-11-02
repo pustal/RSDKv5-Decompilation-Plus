@@ -102,7 +102,16 @@ void DummyCore::StageLoad()
 {
     UserCore::StageLoad();
 
-#if !RSDK_AUTOBUILD
+#if !RETRO_USE_ORIGINAL_CODE
+    // (Plus) The DLC is off unless the player turned it on (PlusDLCEnabled());
+    // only then can the developer menu toggle it for testing.
+    if (PlusDLCEnabled()) {
+        for (int32 v = 0; v < valueCount; ++v) AddViewableVariable(userValueNames[v], &values[v], VIEWVAR_BOOL, false, true);
+    }
+    else {
+        for (int32 v = 0; v < valueCount; ++v) values[v] = false;
+    }
+#elif !RSDK_AUTOBUILD
     for (int32 v = 0; v < valueCount; ++v) AddViewableVariable(userValueNames[v], &values[v], VIEWVAR_BOOL, false, true);
 #else
     // disable plus on autobuilds

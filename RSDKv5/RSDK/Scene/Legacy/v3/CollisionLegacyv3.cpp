@@ -3027,10 +3027,10 @@ void RSDK::Legacy::v3::EnemyCollision(int32 left, int32 top, int32 right, int32 
 {
     TouchCollision(left, top, right, bottom);
 
-#if RSDK_AUTOBUILD
-    // Skip the hammer hitboxes on autobuilds, just in case
-    return;
-#endif
+    // Skip the hammer hitboxes without the Plus DLC, just in case ((Plus) the
+    // player's setting, PlusDLCEnabled(); originally only on autobuilds)
+    if (!PlusDLCEnabled())
+        return;
 
     Player *player           = &playerList[activePlayer];
 

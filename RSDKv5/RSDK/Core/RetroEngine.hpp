@@ -234,6 +234,7 @@ enum GameRegions {
 #define RETRO_USE_DUMMY_ACHIEVEMENTS (RETRO_REV02 && 1)
 
 // Forces all DLC flags to be disabled, this should be enabled in any public releases
+// (Plus) Without it the DLC is still off by default: see PlusDLCEnabled()
 #ifndef RSDK_AUTOBUILD
 #define RSDK_AUTOBUILD (0)
 #endif
@@ -653,9 +654,36 @@ struct RetroEngine {
     bool32 streamsEnabled = true;
     float streamVolume    = 1.0f;
     float soundFXVolume   = 1.0f;
+
+#if !RETRO_USE_ORIGINAL_CODE
+    // (Plus) The player's opt-in to the official Plus DLCs, for those who own
+    // them: Settings.ini Game:plusDLC, off unless set (also in the Plus menu).
+    // See PlusDLCEnabled().
+    bool32 plusDLC = false;
+#endif
 };
 
 extern RetroEngine engine;
+
+/**
+ * Whether the official Plus DLCs are on: Sonic Mania Plus (Encore mode,
+ * Mighty and Ray...) and, in the legacy cores, Sonic Origins Plus (Amy, and
+ * Knuckles in Sonic CD).
+ *
+ * The RSDKv5(U) decompilation licence requires every build given to anyone
+ * to have the DLC disabled by default, allowing a setting that is off by
+ * default: here, Settings.ini Game:plusDLC (engine.plusDLC), which only the
+ * player turns on. RSDK_AUTOBUILD (CMake RETRO_DISABLE_PLUS) forces it off.
+ * The original code had it on unless RSDK_AUTOBUILD.
+ */
+inline bool32 PlusDLCEnabled()
+{
+#if RETRO_USE_ORIGINAL_CODE
+    return !RSDK_AUTOBUILD;
+#else
+    return !RSDK_AUTOBUILD && engine.plusDLC;
+#endif
+}
 
 #if RETRO_REV02
 typedef void (*LogicLinkHandle)(EngineInfo *info);

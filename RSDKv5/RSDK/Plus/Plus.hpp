@@ -23,6 +23,9 @@
  *   their packs lack (PlusAudio.cpp).
  * - The Plus menu (PlusMenu.cpp), opened with Select (Tab on a keyboard),
  *   drawn with the engine's developer font so it works on every renderer.
+ * - The official Plus DLCs (Sonic Mania Plus, Sonic Origins Plus) stay off
+ *   unless the player turns them on, from the menu's Settings or Settings.ini
+ *   (PlusDLCEnabled() in RetroEngine.hpp, SetPlusDLCEnabled() in Plus.cpp).
  * - Touch controls on Android (PlusTouch.cpp): a button that fades out,
  *   showing a pad and buttons over the game, with an adjustable opacity.
  *

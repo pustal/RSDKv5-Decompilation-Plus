@@ -169,7 +169,8 @@ bool32 RSDK::Legacy::v3::LoadGameConfig(const char *filepath)
         v3::LoadGameXML();
         SetGlobalVariableByName("Options.DevMenuFlag", engine.devMenu ? 1 : 0);
         SetGlobalVariableByName("Engine.Standalone", 0);
-        SetGlobalVariableByName("game.hasPlusDLC", !RSDK_AUTOBUILD);
+        // (Plus) Sonic Origins Plus (Amy, Knuckles in Sonic CD): off unless the player opted in (PlusDLCEnabled()).
+        SetGlobalVariableByName("game.hasPlusDLC", PlusDLCEnabled());
 #endif
 
         SetGlobalVariableByName("Engine.PlatformId", gamePlatformID);

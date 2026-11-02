@@ -175,7 +175,8 @@ bool32 RSDK::Legacy::v4::LoadGameConfig(const char *filepath)
         SetGlobalVariableByName("engine.standalone", 0);
 #endif
 
-        SetGlobalVariableByName("game.hasPlusDLC", !RSDK_AUTOBUILD);
+        // (Plus) Sonic Origins Plus (Amy, Knuckles in Sonic CD): off unless the player opted in (PlusDLCEnabled()).
+        SetGlobalVariableByName("game.hasPlusDLC", PlusDLCEnabled());
 
         usingBytecode = false;
         InitFileInfo(&info);

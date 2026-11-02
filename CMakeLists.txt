@@ -2,10 +2,10 @@ cmake_minimum_required(VERSION 3.10)
 
 project(RetroEngine)
 
-set(DECOMP_VERSION 1.2.0)
+set(DECOMP_VERSION 1.2.1)
 
 set(RETRO_REVISION 3 CACHE STRING "What revision to compile for. Defaults to v5U = 3")
-option(RETRO_DISABLE_PLUS "Disable plus. Should be set on for any public releases." OFF)
+option(RETRO_DISABLE_PLUS "Forces the Plus DLC off. Without it the DLC is still off by default: the player turns it on (Settings.ini Game:plusDLC, or the Plus menu)." OFF)
 
 option(RETRO_MOD_LOADER "Enables or disables the mod loader." ON)
 option(RETRO_PLUS "Enables this fork's Plus features: retro games, the Plus menu, Sonic Mania audio for retro games (needs v5U and the mod loader). Not the Sonic Mania Plus DLC, see RETRO_DISABLE_PLUS." ON)

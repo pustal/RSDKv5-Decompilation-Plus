@@ -336,6 +336,8 @@ void RSDK::LoadSettingsINI()
         customSettings.enableControllerDebugging = iniparser_getboolean(ini, "Game:enableControllerDebugging", false);
         customSettings.disableFocusPause         = iniparser_getboolean(ini, "Game:disableFocusPause", false);
         engine.fastForwardSpeed                  = iniparser_getint(ini, "Game:fastForwardSpeed", 8);
+        // (Plus) The official Plus DLCs, off unless the player owns them and opts in (see PlusDLCEnabled()).
+        engine.plusDLC = iniparser_getboolean(ini, "Game:plusDLC", false);
 
 #if RETRO_REV0U
         customSettings.forceScripts = iniparser_getboolean(ini, "Game:txtScripts", false);
@@ -528,6 +530,7 @@ void RSDK::LoadSettingsINI()
         engine.devMenu        = false;
 
 #if !RETRO_USE_ORIGINAL_CODE
+        engine.plusDLC = false; // (Plus) Off by default (see PlusDLCEnabled()).
         customSettings.region                    = -1;
         customSettings.confirmButtonFlip         = false;
         customSettings.xyButtonFlip              = false;
@@ -581,7 +584,20 @@ void RSDK::LoadSettingsINI()
             engine.devMenu = false;
 #endif
     }
+
+#if RETRO_REV02 && !RETRO_USE_ORIGINAL_CODE
+    SKU::ApplyPlusDLCSetting(); // (Plus) The DLC flags follow Game:plusDLC.
+#endif
 }
+
+#if RETRO_REV02 && !RETRO_USE_ORIGINAL_CODE
+void RSDK::SKU::ApplyPlusDLCSetting()
+{
+    if (!userCore)
+        return;
+    for (int32 v = 0; v < userCore->valueCount; ++v) userCore->values[v] = PlusDLCEnabled();
+}
+#endif
 
 void RSDK::SaveSettingsINI(bool32 writeToFile)
 {
@@ -673,6 +689,12 @@ void RSDK::SaveSettingsINI(bool32 writeToFile)
         WriteText(file, "language=%d\n", SKU::curSKU.language);
 #else
         WriteText(file, "language=%d\n", gameVerInfo.language);
+#endif
+
+#if !RETRO_USE_ORIGINAL_CODE
+        // (Plus) Always written, so the setting can be found.
+        WriteText(file, "; The official Plus DLCs (Sonic Mania Plus, Sonic Origins Plus): only turn on if you own them\n");
+        WriteText(file, "plusDLC=%s\n", (engine.plusDLC ? "y" : "n"));
 #endif
 
         // ================

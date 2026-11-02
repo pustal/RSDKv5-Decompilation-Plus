@@ -134,6 +134,14 @@ extern UserCore *userCore;
 #endif
 
 void InitUserCore();
+#if RETRO_REV02 && !RETRO_USE_ORIGINAL_CODE
+/**
+ * (Plus) Sets the user core's DLC flags (CheckDLC()) from the player's
+ * setting, PlusDLCEnabled(). Called once Settings.ini is read and when the
+ * setting changes.
+ */
+void ApplyPlusDLCSetting();
+#endif
 void ReleaseUserCore();
 void SaveUserData();
 

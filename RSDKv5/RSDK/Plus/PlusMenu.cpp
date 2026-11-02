@@ -10,7 +10,8 @@
 //   - Main: Resume, Games, Achievements, Settings, Exit;
 //   - Games: Sonic Mania and the retro games found, to switch to;
 //   - Achievements: the running game's list;
-//   - Settings: Sonic Mania audio in the retro games, similar music, Mania's
+//   - Settings: the official Plus DLCs (off unless the player owns and turns
+//     them on), Sonic Mania audio in the retro games, similar music, Mania's
 //     remixes, and the touch controls (Android);
 //   - the save screen of the retro games (PlusRetro.cpp): mode, slots, a
 //     slot's actions, character.
@@ -50,6 +51,8 @@ struct MenuState {
     SaveResult result;
     int32 pendingSlot  = -1;
     bool deleteArmed   = false;
+
+    bool plusDLCArmed = false; ///< Settings: the Plus DLC entry asks for a second press (it restarts the game).
 };
 
 MenuState menu;
@@ -230,6 +233,7 @@ void GoToPage(void (*page)())
     menu.selection = 0;
     menu.scroll    = 0;
     menu.message.clear();
+    menu.plusDLCArmed = false;
 }
 
 // ---------------------
@@ -376,6 +380,7 @@ void Page_Achievements()
 
 /** The Settings page's entries (which ones show depends on the platform). */
 enum SettingsItem {
+    SETTING_PLUSDLC,
     SETTING_MANIAAUDIO,
     SETTING_SIMILARMUSIC,
     SETTING_REMIXES,
@@ -387,7 +392,7 @@ enum SettingsItem {
 /** The Settings page's entries, in order. */
 std::vector<SettingsItem> SettingsItems()
 {
-    std::vector<SettingsItem> items = { SETTING_MANIAAUDIO, SETTING_SIMILARMUSIC, SETTING_REMIXES };
+    std::vector<SettingsItem> items = { SETTING_PLUSDLC, SETTING_MANIAAUDIO, SETTING_SIMILARMUSIC, SETTING_REMIXES };
     if (TouchControlsAvailable()) {
         items.push_back(SETTING_TOUCHCONTROLS);
         items.push_back(SETTING_TOUCHOPACITY);
@@ -407,6 +412,14 @@ void Page_Settings()
     std::vector<uint32> colors;
     for (SettingsItem id : ids) {
         switch (id) {
+            case SETTING_PLUSDLC:
+                if (!PlusDLCAvailable())
+                    items.push_back("Plus DLC: OFF (not in this build)");
+                else if (menu.plusDLCArmed)
+                    items.push_back(std::string("Plus DLC: press OK again to turn it ") + OnOff(!PlusDLCEnabled()));
+                else
+                    items.push_back(std::string("Plus DLC: ") + OnOff(PlusDLCEnabled()));
+                break;
             case SETTING_MANIAAUDIO: items.push_back(std::string("Sonic Mania audio in retro games: ") + OnOff(ManiaAudioEnabled())); break;
             case SETTING_SIMILARMUSIC: items.push_back(std::string("Similar Mania music: ") + OnOff(SimilarMusicEnabled())); break;
             case SETTING_REMIXES: items.push_back(std::string("Sonic Mania remixes: ") + OnOff(RemixesEnabled())); break;
@@ -416,14 +429,24 @@ void Page_Settings()
         }
         // The music options need Sonic Mania's audio.
         const bool needsAudio = id == SETTING_SIMILARMUSIC || id == SETTING_REMIXES;
-        colors.push_back(needsAudio && !ManiaAudioEnabled() ? kDimColor : kItemColor);
+        if (id == SETTING_PLUSDLC)
+            colors.push_back(!PlusDLCAvailable() ? kDimColor : menu.plusDLCArmed ? kWarnColor : kItemColor);
+        else
+            colors.push_back(needsAudio && !ManiaAudioEnabled() ? kDimColor : kItemColor);
     }
 
     int32 y = DrawHeader("SETTINGS", "");
     y       = DrawList(items, colors, y);
     const SettingsItem selected = ids[menu.selection];
-    const char *note            = "";
+    if (selected != SETTING_PLUSDLC)
+        menu.plusDLCArmed = false; // The second press must follow the first.
+    const char *note = "";
     switch (selected) {
+        case SETTING_PLUSDLC:
+            note = PlusDLCAvailable() ? "Sonic Mania Plus (Encore mode, Mighty, Ray...) and Sonic Origins Plus (Amy, Knuckles in "
+                                        "Sonic CD). Turn it on only if you own them. Changing it restarts the game."
+                                      : "This build keeps the Plus DLC off (RETRO_DISABLE_PLUS).";
+            break;
         case SETTING_MANIAAUDIO:
             note = "With Sonic Mania's Data.rsdk: the sounds a retro game's packs lack (all of them with the Origins pack "
                    "alone; the Drop Dash, Knuckles' and Amy's moves otherwise) and the zones Mania remixed.";
@@ -441,7 +464,7 @@ void Page_Settings()
         case SETTING_BACK: break;
     }
     y = DrawNote(note, y, kItemColor);
-    if (selected <= SETTING_REMIXES)
+    if (selected >= SETTING_MANIAAUDIO && selected <= SETTING_REMIXES)
         DrawNote("Applies the next time a retro game starts.", y, kDimColor);
 
     const MenuInput input = ReadMenuInput();
@@ -453,6 +476,19 @@ void Page_Settings()
     if (input.back || (input.confirm && selected == SETTING_BACK)) {
         GoToPage(Page_Main);
         menu.selection = 3;
+        return;
+    }
+    if (selected == SETTING_PLUSDLC) {
+        // OK only (not left and right), twice: it restarts the running game.
+        if (!input.confirm || !PlusDLCAvailable())
+            return;
+        if (!menu.plusDLCArmed) {
+            menu.plusDLCArmed = true;
+            return;
+        }
+        menu.plusDLCArmed = false;
+        SetPlusDLCEnabled(!PlusDLCEnabled());
+        CloseMenu();
         return;
     }
     if (!(input.confirm || input.left || input.right))
@@ -469,6 +505,7 @@ void Page_Settings()
             break;
         case SETTING_TOUCHCONTROLS: SetTouchControlsShown(!TouchControlsShown()); break;
         case SETTING_TOUCHOPACITY: StepTouchOpacity(input.left ? -1 : 1); break;
+        case SETTING_PLUSDLC:
         case SETTING_BACK: break;
     }
 }

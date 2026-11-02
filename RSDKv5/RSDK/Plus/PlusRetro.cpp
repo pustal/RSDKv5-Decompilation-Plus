@@ -327,16 +327,44 @@ bool GlobalExists(const char *name) { return Legacy::GetGlobalVariableID(name) !
 /** True for packs with Sonic Origins' modes. */
 bool HasOriginsModes() { return GlobalExists("game.playMode"); }
 
-/** The characters this game offers: the four of every release, plus those Origins added. */
+/**
+ * True when @p id is a character of Sonic Origins Plus: Amy, and in Sonic CD
+ * (engine version 3) Knuckles. The legacy cores refuse them without the Plus
+ * DLC (PlusDLCEnabled(); SceneLegacyv3/v4.cpp), so the save screen hides them.
+ */
+bool IsPlusDLCCharacter(int32 id)
+{
+    std::vector<const char *> names = { "PLAYER_AMY", "PLAYER_AMY_TAILS" };
+    if (engine.version == 3) {
+        names.push_back("PLAYER_KNUCKLES");
+        names.push_back("PLAYER_KNUCKLES_TAILS");
+    }
+    for (const char *name : names) {
+        if (GlobalExists(name) && Legacy::GetGlobalVariableByName(name) == id)
+            return true;
+    }
+    return false;
+}
+
+/**
+ * The characters this game offers: the four of every release, plus those
+ * Origins added; without the Plus DLC, not those of Sonic Origins Plus.
+ */
 std::vector<Character> CharacterList()
 {
-    std::vector<Character> characters = { { 0, "Sonic" }, { 1, "Tails" }, { 2, "Knuckles" }, { 3, "Sonic & Tails" } };
+    std::vector<Character> all = { { 0, "Sonic" }, { 1, "Tails" }, { 2, "Knuckles" }, { 3, "Sonic & Tails" } };
     if (GlobalExists("PLAYER_KNUCKLES_TAILS"))
-        characters.push_back({ Legacy::GetGlobalVariableByName("PLAYER_KNUCKLES_TAILS"), "Knuckles & Tails" });
+        all.push_back({ Legacy::GetGlobalVariableByName("PLAYER_KNUCKLES_TAILS"), "Knuckles & Tails" });
     if (GlobalExists("PLAYER_AMY"))
-        characters.push_back({ Legacy::GetGlobalVariableByName("PLAYER_AMY"), "Amy" });
+        all.push_back({ Legacy::GetGlobalVariableByName("PLAYER_AMY"), "Amy" });
     if (GlobalExists("PLAYER_AMY_TAILS"))
-        characters.push_back({ Legacy::GetGlobalVariableByName("PLAYER_AMY_TAILS"), "Amy & Tails" });
+        all.push_back({ Legacy::GetGlobalVariableByName("PLAYER_AMY_TAILS"), "Amy & Tails" });
+
+    std::vector<Character> characters;
+    for (const Character &character : all) {
+        if (PlusDLCEnabled() || !IsPlusDLCCharacter(character.id))
+            characters.push_back(character);
+    }
     return characters;
 }
 

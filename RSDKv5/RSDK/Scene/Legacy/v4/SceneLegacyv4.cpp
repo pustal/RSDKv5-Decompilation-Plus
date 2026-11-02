@@ -64,13 +64,14 @@ void RSDK::Legacy::v4::ProcessStage(void)
             stageMinutes      = 0;
             stageMode         = STAGEMODE_NORMAL;
 
-#if RSDK_AUTOBUILD
-            // Prevent playing as Amy if on autobuilds
-            if (GetGlobalVariableByName("PLAYER_AMY") && playerListPos == GetGlobalVariableByName("PLAYER_AMY"))
-                playerListPos = 0;
-            else if (GetGlobalVariableByName("PLAYER_AMY_TAILS") && playerListPos == GetGlobalVariableByName("PLAYER_AMY_TAILS"))
-                playerListPos = 0;
-#endif
+            // Prevent playing as Amy without the Plus DLC ((Plus) the player's
+            // setting, PlusDLCEnabled(); originally only on autobuilds)
+            if (!PlusDLCEnabled()) {
+                if (GetGlobalVariableByName("PLAYER_AMY") && playerListPos == GetGlobalVariableByName("PLAYER_AMY"))
+                    playerListPos = 0;
+                else if (GetGlobalVariableByName("PLAYER_AMY_TAILS") && playerListPos == GetGlobalVariableByName("PLAYER_AMY_TAILS"))
+                    playerListPos = 0;
+            }
 
 #if RETRO_USE_MOD_LOADER
             if (devMenu.modsChanged)

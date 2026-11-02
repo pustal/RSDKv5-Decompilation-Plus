@@ -7,7 +7,9 @@
 // (the legacy cores are included the same way). The other parts are
 // included below, in dependency order.
 //
-// Settings are kept in Plus.ini next to Settings.ini:
+// The official Plus DLCs' opt-in is Settings.ini Game:plusDLC (see
+// PlusDLCEnabled() and SetPlusDLCEnabled()), so it works without the Plus
+// module too. Plus's own settings are kept in Plus.ini next to Settings.ini:
 //   lastGame=sonic1        the game to start with ("mania" or a retro game)
 //   maniaAudio=1           Sonic Mania's audio fills the retro games' gaps
 //   maniaSimilarMusic=0    ...including similar-feel music for other zones
@@ -219,6 +221,30 @@ void StepTouchOpacity(int32 direction)
 
 /** Asks for a switch to @p id, applied once the menu has closed. */
 void RequestSwitch(const std::string &id) { plus.pendingSwitch = id; }
+
+/**
+ * Whether this build lets the player turn the official Plus DLCs on: not when
+ * built with RSDK_AUTOBUILD (CMake RETRO_DISABLE_PLUS), which forces them off.
+ */
+constexpr bool PlusDLCAvailable() { return !RSDK_AUTOBUILD; }
+
+/**
+ * Turns the official Plus DLCs (Sonic Mania Plus, Sonic Origins Plus) on or
+ * off: saved as Settings.ini Game:plusDLC, which the engine reads instead of
+ * enabling them by default (see PlusDLCEnabled()). The running game reads them
+ * as it starts (Sonic Mania's menus, the legacy cores' game.hasPlusDLC), so it
+ * restarts, as a game switch does, once the menu has closed.
+ */
+void SetPlusDLCEnabled(bool enabled)
+{
+    if (!PlusDLCAvailable())
+        return;
+    engine.plusDLC = enabled;
+    SaveSettingsINI(true);
+    SKU::ApplyPlusDLCSetting();
+    RequestSwitch(plus.current);
+    Notify(enabled ? "Plus DLC on" : "Plus DLC off");
+}
 
 /** Points the save folder at the running retro game's (defined below). */
 void EnsureSaveFolder();
