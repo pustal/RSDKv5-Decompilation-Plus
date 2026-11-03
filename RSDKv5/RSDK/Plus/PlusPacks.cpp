@@ -31,7 +31,7 @@ enum PackState {
 /** One pack of a retro game. */
 struct Pack {
     PackState state = PACK_MISSING;
-    std::string path;        ///< Relative to the user folder ("retro/sonic1-origins.rsdk").
+    std::string path;        ///< Relative to the user folder ("retro/sonic1-origins.rsdk"), or absolute (AddPackFolder()).
     char version    = 0;     ///< '3', '4' or 'B' when ready.
     bool standalone = false; ///< Ready, with bytecode the engine runs (playable alone).
 };
@@ -86,11 +86,26 @@ const char *const kRetroFolder = "retro";
 /** Smallest file that can be a pack: a header and a file table. */
 const int64 kMinimumPackBytes = 64;
 
-/** @p relative inside the user folder (where Settings.ini and the saves are). */
-std::string UserPath(const std::string &relative) { return std::string(SKU::userFileDir) + relative; }
+/**
+ * @p relative inside the user folder (where Settings.ini and the saves are).
+ * An absolute path (a pack in a folder added with AddPackFolder(), or
+ * Game:dataFile on a USB drive) is used as it is, as LoadDataPack() does.
+ */
+std::string UserPath(const std::string &relative)
+{
+    if (!relative.empty() && relative[0] == '/')
+        return relative;
+    return std::string(SKU::userFileDir) + relative;
+}
+
+/** The pack file's name: "sonic1-origins.rsdk" or "sonic1-classic.rsdk". */
+std::string PackFileName(const char *gameId, bool origins) { return std::string(gameId) + (origins ? "-origins.rsdk" : "-classic.rsdk"); }
 
 /** "retro/sonic1-origins.rsdk" or "retro/sonic1-classic.rsdk". */
-std::string PackPath(const char *gameId, bool origins) { return std::string(kRetroFolder) + "/" + gameId + (origins ? "-origins.rsdk" : "-classic.rsdk"); }
+std::string PackPath(const char *gameId, bool origins) { return std::string(kRetroFolder) + "/" + PackFileName(gameId, origins); }
+
+/** Folders added with AddPackFolder(), searched after the user folder's "retro" one (each with its trailing slash). */
+std::vector<std::string> extraPackFolders;
 
 /**
  * Opens a file of the user folder (a pack, Plus.ini) as a stdio FILE.
@@ -482,6 +497,17 @@ Pack ConvertInPlace(const std::string &relative)
 #endif
 }
 
+/** A game's pack: from the user folder's "retro" folder, else from the first added folder that has it. */
+Pack FindPack(const char *gameId, bool origins)
+{
+    Pack pack = InspectPack(PackPath(gameId, origins));
+    for (size_t f = 0; pack.state == PACK_MISSING && f < extraPackFolders.size(); ++f)
+        pack = InspectPack(extraPackFolders[f] + PackFileName(gameId, origins));
+    if (pack.state == PACK_MISSING)
+        pack.path = PackPath(gameId, origins); // Where the menu says it goes.
+    return pack;
+}
+
 /** Finds every retro game's packs (converting Sonic CD 2011 packs on the way). */
 std::vector<RetroGame> ScanRetroGames()
 {
@@ -489,8 +515,8 @@ std::vector<RetroGame> ScanRetroGames()
     for (const GameInfo &info : kRetroGames) {
         RetroGame game;
         game.info    = info;
-        game.origins = InspectPack(PackPath(info.id, true));
-        game.classic = InspectPack(PackPath(info.id, false));
+        game.origins = FindPack(info.id, true);
+        game.classic = FindPack(info.id, false);
         if (game.classic.state == PACK_OLDFORMAT)
             game.classic = ConvertInPlace(game.classic.path);
         games.push_back(game);

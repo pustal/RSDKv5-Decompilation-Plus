@@ -243,11 +243,17 @@ void GoToPage(void (*page)())
 void Page_Main()
 {
     BeginPage();
-    const std::vector<std::string> items = { "Resume", "Games", "Achievements", "Settings", "Exit" };
+    // Resume, Games, Achievements, Settings, a port's own entries (AddMenuAction()), Exit.
+    const int32 kFixedItems        = 4;
+    std::vector<std::string> items = { "Resume", "Games", "Achievements", "Settings" };
+    for (const auto &action : plus.menuActions) items.push_back(action.first);
+    items.push_back("Exit");
     const std::vector<uint32> colors(items.size(), kItemColor);
 
     int32 y = DrawHeader("PLUS MENU", gameVerInfo.gameTitle);
     y       = DrawList(items, colors, y);
+    if (!plus.texts.menuInfo.empty())
+        y = DrawNote(plus.texts.menuInfo, y, kItemColor);
     DrawNote("SELECT: close  BACK: resume", y, kDimColor);
 
     const MenuInput input = ReadMenuInput();
@@ -266,7 +272,17 @@ void Page_Main()
             GoToPage(Page_Achievements);
             break;
         case 3: GoToPage(Page_Settings); break;
-        case 4: RenderDevice::isRunning = false; break;
+        default: {
+            const int32 action = menu.selection - kFixedItems;
+            if (action < (int32)plus.menuActions.size()) {
+                CloseMenu();
+                plus.menuActions[action].second();
+            }
+            else {
+                RenderDevice::isRunning = false; // Exit.
+            }
+            break;
+        }
     }
 }
 
@@ -307,7 +323,9 @@ void Page_Games()
     y = DrawNote(selected.description, y, selected.playable ? kItemColor : kWarnColor);
     if (!menu.message.empty())
         y = DrawNote(menu.message, y, kWarnColor);
-    DrawNote("Retro packs go in the \"retro\" folder next to Data.rsdk: sonic1-origins.rsdk, sonic1-classic.rsdk, ...", y, kDimColor);
+    DrawNote(plus.texts.packHint.empty() ? "Retro packs go in the \"retro\" folder next to Data.rsdk: sonic1-origins.rsdk, sonic1-classic.rsdk, ..."
+                                         : plus.texts.packHint,
+             y, kDimColor);
 
     const MenuInput input = ReadMenuInput();
     MoveSelection(input, (int32)rows.size());

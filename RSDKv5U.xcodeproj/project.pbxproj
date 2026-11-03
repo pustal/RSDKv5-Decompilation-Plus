@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C96881FF25DF3C8B00BEE4B8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C96881FE25DF3C8B00BEE4B8 /* Assets.xcassets */; };
 		C92834EA2631150A00D51CCE /* Ogg.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C92834E92631150A00D51CCE /* Ogg.framework */; };
 		C92834EB2631150A00D51CCE /* Ogg.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C92834E92631150A00D51CCE /* Ogg.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		C928353D26A3F28200D51CCE /* cocoaHelpers.mm in Sources */ = {isa = PBXBuildFile; fileRef = C928353C26A3F28200D51CCE /* cocoaHelpers.mm */; };
@@ -96,7 +97,7 @@
 		C9555DAD2744FE06006E1353 /* tinyxml2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tinyxml2.cpp; path = dependencies/all/tinyxml2/tinyxml2.cpp; sourceTree = SOURCE_ROOT; };
 		C965667526BCF1E80076832A /* Theora.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Theora.framework; path = dependencies/mac/libtheora/macosx/Theora.framework; sourceTree = "<group>"; };
 		C96881F125DF3C8700BEE4B8 /* RSDKv5U.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RSDKv5U.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		C96881FE25DF3C8B00BEE4B8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../dependencies/mac/Assets.xcassets; sourceTree = "<group>"; };
+		C96881FE25DF3C8B00BEE4B8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = dependencies/mac/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		C968886425DF3EF300BEE4B8 /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = dependencies/mac/SDL2.framework; sourceTree = "<group>"; };
 		C968886A25DF3F4B00BEE4B8 /* dictionary.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = dictionary.cpp; path = dependencies/all/iniparser/dictionary.cpp; sourceTree = SOURCE_ROOT; };
 		C968886B25DF3F4B00BEE4B8 /* dictionary.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dictionary.h; path = dependencies/all/iniparser/dictionary.h; sourceTree = SOURCE_ROOT; };
@@ -626,6 +627,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C96881FF25DF3C8B00BEE4B8 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -843,7 +845,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.2.1;
+				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = RSDK.RSDKv5U;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				USER_HEADER_SEARCH_PATHS = "";
@@ -878,7 +880,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.2.1;
+				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = RSDK.RSDKv5U;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				USER_HEADER_SEARCH_PATHS = "";

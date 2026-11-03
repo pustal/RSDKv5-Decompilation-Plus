@@ -147,6 +147,66 @@ bool32 ResolveLegacySfx(const char *name, char *out, int32 outSize);
  */
 bool32 ResolveLegacyMusic(const char *name, char *out, int32 outSize, int32 *loopPoint);
 
+// =====================
+// Platform integration
+// =====================
+//
+// For a port that wraps the engine in its own launcher (SonicWebMania on LG
+// webOS TVs): where else the packs are, what the menu should tell the
+// player, and its settings changed from outside the game. Unless noted, call
+// these on the engine's thread, or before RunRetroEngine().
+
+/**
+ * Also looks for the retro packs in @p folder (an absolute path, a USB
+ * drive's folder for instance), after the user folder's "retro" folder:
+ * each pack is taken from the first folder that has it. Saves stay in the
+ * user folder. Call before RunRetroEngine(); the packs are found at startup.
+ */
+void AddPackFolder(const std::string &folder);
+
+/** Texts a port can show in the Plus menu instead of, or as well as, the defaults. */
+struct PlatformTexts {
+    std::string menuInfo; ///< A line on the main page (how to reach the port's transfer page, say); "" for none.
+    std::string packHint; ///< Where the retro packs go, on the Games page; "" for the default ("retro" folder).
+};
+
+/** Sets the texts above. */
+void SetPlatformTexts(const PlatformTexts &texts);
+
+/**
+ * Adds an entry to the main page of the Plus menu, before Exit. @p action
+ * runs on the engine's thread when it is chosen, with the menu closed.
+ */
+void AddMenuAction(const std::string &label, void (*action)());
+
+/** Calls @p callback once per frame on the engine's thread (null for none). */
+void SetFrameCallback(void (*callback)());
+
+/** True while the Plus menu (or the retro games' save screen) is open. */
+bool32 MenuOpen();
+
+/** The settings the Plus menu offers, for a port's own settings page. */
+struct Settings {
+    bool plusDLC      = false; ///< The official Plus DLCs (Settings.ini Game:plusDLC, see PlusDLCEnabled()).
+    bool maniaAudio   = true;  ///< Sonic Mania's audio fills the retro games' gaps.
+    bool similarMusic = false; ///< ...including similar music for the zones Mania has no version of.
+    bool maniaRemixes = false; ///< The zones Mania remixed play the remix even when the packs have the original.
+};
+
+/**
+ * The settings as they are now. Plain values, so another thread may read
+ * them (a value changing meanwhile only shows a frame later).
+ */
+Settings CurrentSettings();
+
+/**
+ * Applies and saves @p settings, as the menu's Settings page does: a
+ * change of the Plus DLC restarts the running game; the audio settings apply
+ * the next time a retro game starts. Call on the engine's thread (from the
+ * frame callback, for instance).
+ */
+void ApplySettings(const Settings &settings);
+
 } // namespace Plus
 } // namespace RSDK
 

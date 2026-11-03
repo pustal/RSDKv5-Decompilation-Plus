@@ -24,3 +24,7 @@ Put these in this folder (Git ignores them):
    * in `~/Library/Application Support/RSDKv5/`, used otherwise (created on the first run).
 
    Settings, saves and `log.txt` go to the same folder.
+
+## App icon
+
+The app's icon is the R of the RSDK logo with the green PLUS, both taken from the repository's `header.png`: `Assets.xcassets/AppIcon.appiconset` holds every size macOS asks for, and `python3 dependencies/mac/make-icon.py` (Pillow and NumPy) draws them again if the header changes.

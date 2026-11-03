@@ -61,6 +61,11 @@ struct PlusState {
 
     std::string notice;     ///< Shown over the game.
     int32 noticeFrames = 0; ///< Frames it still shows.
+
+    // Set by a port (see "Platform integration" in Plus.hpp).
+    PlatformTexts texts;
+    std::vector<std::pair<std::string, void (*)()>> menuActions; ///< Label and action, before Exit.
+    void (*frameCallback)() = nullptr;
 };
 
 PlusState plus;
@@ -248,6 +253,9 @@ void SetPlusDLCEnabled(bool enabled)
 
 /** Points the save folder at the running retro game's (defined below). */
 void EnsureSaveFolder();
+
+/** True while the developer menu, which the Plus menu and the save screen are built on, is open. */
+bool InDevMenu() { return engine.version == 5 ? sceneInfo.state == ENGINESTATE_DEVMENU : Legacy::gameMode == Legacy::ENGINE_DEVMENU; }
 
 } // namespace Plus
 } // namespace RSDK
@@ -463,10 +471,59 @@ void RSDK::Plus::Update()
 
     // Select opens the Plus menu (unless the developer menu's controller
     // debugging already uses it), not on the press that just closed it.
-    const bool inMenu = engine.version == 5 ? sceneInfo.state == ENGINESTATE_DEVMENU : Legacy::gameMode == Legacy::ENGINE_DEVMENU;
-    if (!inMenu && controller[CONT_ANY].keySelect.press && plusFrame != menuClosedFrame && !customSettings.enableControllerDebugging)
+    if (!InDevMenu() && controller[CONT_ANY].keySelect.press && plusFrame != menuClosedFrame && !customSettings.enableControllerDebugging)
         OpenMenu();
     ++plusFrame;
+
+    if (plus.frameCallback)
+        plus.frameCallback();
+}
+
+// =====================
+// Platform integration (see Plus.hpp)
+// =====================
+
+void RSDK::Plus::AddPackFolder(const std::string &folder)
+{
+    if (folder.empty())
+        return;
+    extraPackFolders.push_back(folder.back() == '/' ? folder : folder + "/");
+}
+
+void RSDK::Plus::SetPlatformTexts(const PlatformTexts &texts) { plus.texts = texts; }
+
+void RSDK::Plus::AddMenuAction(const std::string &label, void (*action)())
+{
+    if (action)
+        plus.menuActions.emplace_back(label, action);
+}
+
+void RSDK::Plus::SetFrameCallback(void (*callback)()) { plus.frameCallback = callback; }
+
+bool32 RSDK::Plus::MenuOpen() { return InDevMenu(); }
+
+RSDK::Plus::Settings RSDK::Plus::CurrentSettings()
+{
+    Settings settings;
+    settings.plusDLC      = PlusDLCEnabled();
+    settings.maniaAudio   = plus.config.maniaAudio;
+    settings.similarMusic = plus.config.similarMusic;
+    settings.maniaRemixes = plus.config.maniaRemixes;
+    return settings;
+}
+
+void RSDK::Plus::ApplySettings(const Settings &settings)
+{
+    const Config before      = plus.config;
+    plus.config.maniaAudio   = settings.maniaAudio;
+    plus.config.similarMusic = settings.similarMusic;
+    plus.config.maniaRemixes = settings.maniaRemixes;
+    if (plus.config.maniaAudio != before.maniaAudio || plus.config.similarMusic != before.similarMusic
+        || plus.config.maniaRemixes != before.maniaRemixes)
+        SaveConfig();
+    // Last: it restarts the running game.
+    if ((bool)settings.plusDLC != (bool)PlusDLCEnabled())
+        SetPlusDLCEnabled(settings.plusDLC);
 }
 
 void RSDK::Plus::DrawOverlay()
