@@ -25,6 +25,7 @@
 #include <type_traits>
 
 #include "PlusPacks.cpp"
+#include "PlusOrigins.cpp"
 
 namespace RSDK
 {
@@ -306,10 +307,15 @@ bool LoadGamePacks(const std::string &id)
     }
 
     // Origins first: the engine takes each file from the first pack that has it.
+    // Then the sounds: Sonic Origins' own (converted), the earlier release's,
+    // Sonic Mania's.
     const RetroGame &game = *FindRetroGame(id);
     const bool origins    = game.origins.state == PACK_READY;
     if (!LoadDataPack((origins ? game.origins : game.classic).path.c_str(), 0, plus.useBuffer))
         return false;
+    // Never buffered: Sonic CD's is close to 300 MB.
+    if (game.HasOriginsAudio() && !LoadDataPack(game.originsAudio.path.c_str(), 0, false))
+        PrintLog(PRINT_NORMAL, "[Plus] Could not load %s", game.originsAudio.path.c_str());
     if (origins && game.HasSoundPack() && !LoadDataPack(game.classic.path.c_str(), 0, plus.useBuffer))
         PrintLog(PRINT_NORMAL, "[Plus] Could not load %s", game.classic.path.c_str());
     if (plus.config.maniaAudio && plus.maniaAvailable && !LoadAudioDataPack(plus.maniaDataFile.c_str()))
@@ -475,6 +481,17 @@ void RSDK::Plus::Update()
         OpenMenu();
     ++plusFrame;
 
+    // A Sonic Origins audio conversion has finished: the packs are found
+    // again, and a running retro game restarts with its new pack (the file
+    // table it read at startup is the old pack's).
+    if (originsJob.finished.exchange(false)) {
+        plus.games            = ScanRetroGames();
+        const RetroGame *game = FindRetroGame(plus.current);
+        Notify(OriginsMessage());
+        if (game && game->HasOriginsAudio())
+            RequestSwitch(plus.current);
+    }
+
     if (plus.frameCallback)
         plus.frameCallback();
 }
@@ -510,6 +527,17 @@ RSDK::Plus::Settings RSDK::Plus::CurrentSettings()
     settings.similarMusic = plus.config.similarMusic;
     settings.maniaRemixes = plus.config.maniaRemixes;
     return settings;
+}
+
+bool32 RSDK::Plus::StartOriginsAudioConversion() { return StartOriginsConversion(); }
+
+RSDK::Plus::OriginsAudioStatus RSDK::Plus::GetOriginsAudioStatus()
+{
+    OriginsAudioStatus status;
+    status.running = originsJob.running;
+    status.percent = originsJob.percent;
+    status.message = OriginsMessage();
+    return status;
 }
 
 void RSDK::Plus::ApplySettings(const Settings &settings)
@@ -548,6 +576,7 @@ void RSDK::Plus::Notify(const std::string &text)
 
 void RSDK::Plus::Release()
 {
+    StopOriginsConversion();
     if (IsRetroGame(plus.current) && engine.version != 5 && GlobalExists("game.coinCount"))
         SyncCoins();
     plus.config.lastGame = plus.current;

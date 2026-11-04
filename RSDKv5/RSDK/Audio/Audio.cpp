@@ -14,6 +14,32 @@ using namespace RSDK;
 stb_vorbis *vorbisInfo = NULL;
 stb_vorbis_alloc vorbisAlloc;
 
+#if RETRO_USE_PLUS
+// (Plus) Sonic Origins' HCA audio, converted by the Plus module (HcaAudio.hpp).
+#include "clHCA/clhca.c"
+#include "HcaAudio.cpp"
+
+/** The music track playing, when it is an HCA file (null for Ogg Vorbis). */
+RSDK::Hca::Stream *hcaStream = NULL;
+/** Sonic Origins plays a zone's speed-shoes music ("..._F.ogg") as its track this much faster. */
+const float kHcaFastSpeed = 1.2f;
+
+/** Stops the HCA track, if one plays. */
+void CloseHcaStream()
+{
+    delete hcaStream;
+    hcaStream = NULL;
+}
+
+/** True when the stream's track is a sped-up version ("Data/Music/GreenHill_F.ogg"). */
+bool32 IsFastTrack(const char *path)
+{
+    const char *dot = strrchr(path, '.');
+    const size_t length = dot ? (size_t)(dot - path) : strlen(path);
+    return length >= 2 && path[length - 2] == '_' && (path[length - 1] == 'F' || path[length - 1] == 'f');
+}
+#endif
+
 SFXInfo RSDK::sfxList[SFX_COUNT];
 ChannelInfo RSDK::channels[CHANNEL_COUNT];
 
@@ -50,6 +76,9 @@ void AudioDeviceBase::Release()
 #if !RETRO_USE_ORIGINAL_CODE
     stb_vorbis_close(vorbisInfo);
     vorbisInfo = NULL;
+#endif
+#if RETRO_USE_PLUS
+    CloseHcaStream();
 #endif
 }
 
@@ -186,6 +215,20 @@ void RSDK::UpdateStreamBuffer(ChannelInfo *channel)
     int32 bufferRemaining = MIX_BUFFER_SIZE;
     float *buffer         = channel->samplePtr;
 
+#if RETRO_USE_PLUS
+    if (hcaStream) {
+        // (Plus) An HCA track loops where its file says (Hca::Stream::Read()).
+        const int32 frames = hcaStream->Read(buffer, MIX_BUFFER_SIZE / 2, channel->loop == 1);
+        if (frames < MIX_BUFFER_SIZE / 2) {
+            channel->state   = CHANNEL_IDLE;
+            channel->soundID = -1;
+            memset(buffer + frames * 2, 0, sizeof(float) * (MIX_BUFFER_SIZE - frames * 2));
+        }
+        for (int32 i = 0; i < MIX_BUFFER_SIZE; ++i) channel->samplePtr[i] *= 0.5f;
+        return;
+    }
+#endif
+
     for (int32 s = 0; s < MIX_BUFFER_SIZE;) {
         int32 samples = stb_vorbis_get_samples_float_interleaved(vorbisInfo, 2, buffer, bufferRemaining) * 2;
         if (!samples) {
@@ -215,11 +258,43 @@ void RSDK::LoadStream(ChannelInfo *channel)
         return;
 
     stb_vorbis_close(vorbisInfo);
+#if !RETRO_USE_ORIGINAL_CODE
+    vorbisInfo = NULL;
+#endif
+#if RETRO_USE_PLUS
+    CloseHcaStream();
+#endif
 
     FileInfo info;
     InitFileInfo(&info);
 
     if (LoadFile(&info, streamFilePath, FMODE_RB)) {
+#if RETRO_USE_PLUS
+        // (Plus) Sonic Origins' converted music (HcaAudio.hpp): decoded while it plays.
+        uint8 signature[8] = {};
+        if (info.fileSize >= (int32)sizeof(signature)) {
+            ReadBytes(&info, signature, sizeof(signature));
+            Seek_Set(&info, 0);
+        }
+        if (Hca::IsHca(signature, sizeof(signature))) {
+            std::vector<uint8> file(info.fileSize);
+            ReadBytes(&info, file.data(), info.fileSize);
+            CloseFile(&info);
+
+            hcaStream = new Hca::Stream();
+            if (hcaStream->Open(std::move(file), IsFastTrack(streamFilePath) ? kHcaFastSpeed : 1.0f, streamStartPos)) {
+                UpdateStreamBuffer(channel);
+                channel->state = CHANNEL_STREAM;
+            }
+            else {
+                PrintLog(PRINT_ERROR, "Unable to play %s", streamFilePath);
+                CloseHcaStream();
+            }
+            if (channel->state == CHANNEL_LOADING_STREAM)
+                channel->state = CHANNEL_IDLE;
+            return;
+        }
+#endif
         streamBufferSize = info.fileSize;
         streamBuffer     = NULL;
         AllocateStorage((void **)&streamBuffer, info.fileSize, DATASET_MUS, false);
@@ -319,6 +394,29 @@ void RSDK::LoadSfxToSlot(char *filename, uint8 slot, uint8 plays, uint8 scope)
         sfxList[slot].maxConcurrentPlays = plays;
 
         uint8 type = fullFilePath[strlen(fullFilePath) - 1];
+#if RETRO_USE_PLUS
+        // (Plus) Sonic Origins' converted sound effects are HCA files under
+        // the .wav names the games ask for (HcaAudio.hpp).
+        uint8 signature[8] = {};
+        if (info.fileSize >= (int32)sizeof(signature)) {
+            ReadBytes(&info, signature, sizeof(signature));
+            Seek_Set(&info, 0);
+        }
+        if (Hca::IsHca(signature, sizeof(signature))) {
+            std::vector<uint8> file(info.fileSize);
+            std::vector<float> samples;
+            if (ReadBytes(&info, file.data(), info.fileSize) == (size_t)info.fileSize && Hca::DecodeEffect(file.data(), info.fileSize, &samples)) {
+                AllocateStorage((void **)&sfxList[slot].buffer, sizeof(float) * (uint32)samples.size(), DATASET_SFX, false);
+                memcpy(sfxList[slot].buffer, samples.data(), sizeof(float) * samples.size());
+                sfxList[slot].length = (int32)samples.size();
+            }
+            else {
+                sfxList[slot].scope = SCOPE_NONE;
+                PrintLog(PRINT_ERROR, "Unable to decode sfx: %s", filename);
+            }
+        }
+        else
+#endif
         if (type == 'v' || type == 'V') { // A very loose way of checking that we're trying to load a '.wav' file.
             uint32 signature = ReadInt32(&info, false);
 
@@ -580,7 +678,11 @@ uint32 RSDK::GetChannelPos(uint32 channel)
         return channels[channel].bufferPos;
 
     if (channels[channel].state == CHANNEL_STREAM) {
-        if (!vorbisInfo->current_loc_valid || vorbisInfo->current_loc < 0)
+#if RETRO_USE_PLUS
+        if (hcaStream)
+            return hcaStream->Position();
+#endif
+        if (!vorbisInfo || !vorbisInfo->current_loc_valid || vorbisInfo->current_loc < 0)
             return 0;
 
         return vorbisInfo->current_loc;
@@ -591,6 +693,10 @@ uint32 RSDK::GetChannelPos(uint32 channel)
 
 double RSDK::GetVideoStreamPos()
 {
+#if RETRO_USE_PLUS
+    if (hcaStream)
+        return -1.0; // Videos' audio is Ogg Vorbis.
+#endif
     if (channels[0].state == CHANNEL_STREAM && AudioDevice::audioState && AudioDevice::initializedAudioChannels && vorbisInfo->current_loc_valid) {
         return vorbisInfo->current_loc / (double)AUDIO_FREQUENCY;
     }

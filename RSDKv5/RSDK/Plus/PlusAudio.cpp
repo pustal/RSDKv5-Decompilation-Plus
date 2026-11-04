@@ -321,8 +321,10 @@ bool32 RSDK::Plus::ResolveLegacySfx(const char *name, char *out, int32 outSize)
     // The game's own packs, or a Mania file of the same name, need nothing.
     if (FindDataFileSource(("Data/SoundFX/" + retro).c_str()) != DATAFILE_SOURCE_NONE)
         return false;
+    // The stand-in may come from either pack: Amy's hammer jump is the jump
+    // sound, which the earlier releases' pack has too.
     for (const SfxStandIn &entry : kSfxStandIns) {
-        if (SameName(retro, entry.retro) && FindDataFileSource((std::string("Data/SoundFX/") + entry.mania).c_str()) == DATAFILE_SOURCE_AUDIO) {
+        if (SameName(retro, entry.retro) && FindDataFileSource((std::string("Data/SoundFX/") + entry.mania).c_str()) != DATAFILE_SOURCE_NONE) {
             LogStandIn("sound", retro, entry.mania);
             return CopyOut(entry.mania, out, outSize);
         }

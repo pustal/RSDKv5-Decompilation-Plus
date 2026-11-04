@@ -19,6 +19,11 @@
  * - Save slots and Sonic Origins' modes (Anniversary, Classic, Mirror, Boss
  *   Rush), coins and achievements for the retro games (PlusRetro.cpp). Each
  *   retro game keeps its saves in "retro/<game>/".
+ * - Sonic Origins' own music and sounds, converted from the player's files
+ *   (its .acb and .awb files, in a folder named "origins" next to the retro
+ *   packs) into "<game>-origins-audio.rsdk" packs (PlusOrigins.cpp), which the
+ *   engine plays (Audio/HcaAudio.hpp). A sound comes from Sonic Origins
+ *   first, then from the earlier release's pack, then from Sonic Mania's.
  * - Sonic Mania's pack lends the retro games the music and sound effects
  *   their packs lack (PlusAudio.cpp).
  * - The Plus menu (PlusMenu.cpp), opened with Select (Tab on a keyboard),
@@ -168,6 +173,7 @@ void AddPackFolder(const std::string &folder);
 struct PlatformTexts {
     std::string menuInfo; ///< A line on the main page (how to reach the port's transfer page, say); "" for none.
     std::string packHint; ///< Where the retro packs go, on the Games page; "" for the default ("retro" folder).
+    std::string originsAudioHint; ///< Where Sonic Origins' sound files go, on the Settings page; "" for the default.
 };
 
 /** Sets the texts above. */
@@ -198,6 +204,40 @@ struct Settings {
  * them (a value changing meanwhile only shows a frame later).
  */
 Settings CurrentSettings();
+
+/**
+ * Sonic Origins' audio: the files the converter reads, from Sonic Origins'
+ * image/x64/raw/sound folder, put in the "origins" folder of the user
+ * folder's "retro" folder or of a folder added with AddPackFolder() (the
+ * first that has any). Each game needs its own and HITE_sfx.acb:
+ *   - Sonic 1: STH1_sfx.acb, STH1_music.acb, STH1_music.awb;
+ *   - Sonic 2: STH2_sfx.acb, STH2_music.acb, STH2_music.awb (and Sonic 1's
+ *     music files, for three jingles it shares);
+ *   - Sonic CD: SCD_sfx.acb, SCD_music.acb, SCD_music.awb.
+ * The packs are written next to that "origins" folder; the files can be
+ * deleted afterwards.
+ */
+const char *const kOriginsAudioFileNames[] = { "HITE_sfx.acb",   "STH1_sfx.acb",   "STH1_music.acb", "STH1_music.awb", "STH2_sfx.acb",
+                                               "STH2_music.acb", "STH2_music.awb", "SCD_sfx.acb",    "SCD_music.acb",  "SCD_music.awb" };
+
+/** How the Sonic Origins audio conversion is going. */
+struct OriginsAudioStatus {
+    bool running   = false;
+    int32 percent  = 0;  ///< While running.
+    std::string message; ///< What it is doing, or how the last one ended ("" before the first).
+};
+
+/**
+ * Starts converting Sonic Origins' audio, on a thread of its own (it takes
+ * a while: it reads up to 400 MB). When it ends, the menu tells the player,
+ * and a retro game running restarts with its new sound. Any thread.
+ *
+ * @return False if a conversion is already running.
+ */
+bool32 StartOriginsAudioConversion();
+
+/** The conversion's progress or result. Any thread. */
+OriginsAudioStatus GetOriginsAudioStatus();
 
 /**
  * Applies and saves @p settings, as the menu's Settings page does: a

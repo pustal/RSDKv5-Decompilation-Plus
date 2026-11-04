@@ -11,8 +11,9 @@
 //   - Games: Sonic Mania and the retro games found, to switch to;
 //   - Achievements: the running game's list;
 //   - Settings: the official Plus DLCs (off unless the player owns and turns
-//     them on), Sonic Mania audio in the retro games, similar music, Mania's
-//     remixes, and the touch controls (Android);
+//     them on), converting Sonic Origins' audio (PlusOrigins.cpp), Sonic
+//     Mania audio in the retro games, similar music, Mania's remixes, and the
+//     touch controls (Android);
 //   - the save screen of the retro games (PlusRetro.cpp): mode, slots, a
 //     slot's actions, character.
 // Select (Tab on a keyboard) opens and closes it; Back goes up a page.
@@ -399,6 +400,7 @@ void Page_Achievements()
 /** The Settings page's entries (which ones show depends on the platform). */
 enum SettingsItem {
     SETTING_PLUSDLC,
+    SETTING_ORIGINSAUDIO,
     SETTING_MANIAAUDIO,
     SETTING_SIMILARMUSIC,
     SETTING_REMIXES,
@@ -410,7 +412,7 @@ enum SettingsItem {
 /** The Settings page's entries, in order. */
 std::vector<SettingsItem> SettingsItems()
 {
-    std::vector<SettingsItem> items = { SETTING_PLUSDLC, SETTING_MANIAAUDIO, SETTING_SIMILARMUSIC, SETTING_REMIXES };
+    std::vector<SettingsItem> items = { SETTING_PLUSDLC, SETTING_ORIGINSAUDIO, SETTING_MANIAAUDIO, SETTING_SIMILARMUSIC, SETTING_REMIXES };
     if (TouchControlsAvailable()) {
         items.push_back(SETTING_TOUCHCONTROLS);
         items.push_back(SETTING_TOUCHOPACITY);
@@ -438,6 +440,12 @@ void Page_Settings()
                 else
                     items.push_back(std::string("Plus DLC: ") + OnOff(PlusDLCEnabled()));
                 break;
+            case SETTING_ORIGINSAUDIO:
+                if (originsJob.running)
+                    items.push_back("Converting Sonic Origins audio: " + std::to_string((int32)originsJob.percent) + "%");
+                else
+                    items.push_back("Convert Sonic Origins audio");
+                break;
             case SETTING_MANIAAUDIO: items.push_back(std::string("Sonic Mania audio in retro games: ") + OnOff(ManiaAudioEnabled())); break;
             case SETTING_SIMILARMUSIC: items.push_back(std::string("Similar Mania music: ") + OnOff(SimilarMusicEnabled())); break;
             case SETTING_REMIXES: items.push_back(std::string("Sonic Mania remixes: ") + OnOff(RemixesEnabled())); break;
@@ -458,8 +466,15 @@ void Page_Settings()
     const SettingsItem selected = ids[menu.selection];
     if (selected != SETTING_PLUSDLC)
         menu.plusDLCArmed = false; // The second press must follow the first.
-    const char *note = "";
+    std::string note;
     switch (selected) {
+        case SETTING_ORIGINSAUDIO:
+            note = "Sonic Origins' own music and sounds for Sonic 1, 2 and CD, from its files (image/x64/raw/sound: the "
+                   "STH1, STH2, SCD and HITE .acb and .awb files). ";
+            note += plus.texts.originsAudioHint.empty() ? "Copy them into the \"origins\" folder next to the retro packs, then press OK."
+                                                       : plus.texts.originsAudioHint;
+            note += " They play first, then the earlier release's, then Sonic Mania's.";
+            break;
         case SETTING_PLUSDLC:
             note = PlusDLCAvailable() ? "Sonic Mania Plus (Encore mode, Mighty, Ray...) and Sonic Origins Plus (Amy, Knuckles in "
                                         "Sonic CD). Turn it on only if you own them. Changing it restarts the game."
@@ -482,6 +497,8 @@ void Page_Settings()
         case SETTING_BACK: break;
     }
     y = DrawNote(note, y, kItemColor);
+    if (selected == SETTING_ORIGINSAUDIO && !OriginsMessage().empty())
+        y = DrawNote(OriginsMessage(), y, originsJob.running ? kDimColor : kItemColor);
     if (selected >= SETTING_MANIAAUDIO && selected <= SETTING_REMIXES)
         DrawNote("Applies the next time a retro game starts.", y, kDimColor);
 
@@ -509,6 +526,12 @@ void Page_Settings()
         CloseMenu();
         return;
     }
+    if (selected == SETTING_ORIGINSAUDIO) {
+        // A running retro game restarts when it is done.
+        if (input.confirm)
+            StartOriginsConversion();
+        return;
+    }
     if (!(input.confirm || input.left || input.right))
         return;
     switch (selected) {
@@ -524,6 +547,7 @@ void Page_Settings()
         case SETTING_TOUCHCONTROLS: SetTouchControlsShown(!TouchControlsShown()); break;
         case SETTING_TOUCHOPACITY: StepTouchOpacity(input.left ? -1 : 1); break;
         case SETTING_PLUSDLC:
+        case SETTING_ORIGINSAUDIO:
         case SETTING_BACK: break;
     }
 }

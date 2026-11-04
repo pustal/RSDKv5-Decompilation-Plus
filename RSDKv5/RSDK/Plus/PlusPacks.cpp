@@ -14,6 +14,8 @@
 //     its scripts are the bytecode the engine runs.
 // Sonic CD's 2011 packs use the original RSDKv3 format, which the engine
 // cannot open: they are converted in place the first time they are found.
+// A third pack, <game>-origins-audio.rsdk, is Sonic Origins' own audio,
+// converted from the player's files on request (PlusOrigins.cpp).
 
 namespace RSDK
 {
@@ -57,6 +59,7 @@ struct RetroGame {
     GameInfo info{};
     Pack origins;
     Pack classic;
+    Pack originsAudio; ///< Sonic Origins' audio, converted (PlusOrigins.cpp).
 
     /** An Origins pack, or a classic pack that plays on its own. */
     bool Playable() const { return origins.state == PACK_READY || (classic.state == PACK_READY && classic.standalone); }
@@ -64,10 +67,15 @@ struct RetroGame {
     /** The classic pack lends music and sound effects. */
     bool HasSoundPack() const { return classic.state == PACK_READY; }
 
+    /** Sonic Origins' own audio was converted for it. */
+    bool HasOriginsAudio() const { return originsAudio.state == PACK_READY; }
+
     /** One line on how the game will be played, for the menu. */
     std::string Description() const
     {
         const bool hasOrigins = origins.state == PACK_READY;
+        if (hasOrigins && HasOriginsAudio())
+            return HasSoundPack() ? "Sonic Origins, with its own sound (the earlier release fills gaps)" : "Sonic Origins, with its own sound";
         if (hasOrigins && HasSoundPack())
             return "Sonic Origins, sound from the earlier release";
         if (hasOrigins)
@@ -508,6 +516,9 @@ Pack FindPack(const char *gameId, bool origins)
     return pack;
 }
 
+/** A game's converted Sonic Origins audio pack (PlusOrigins.cpp). */
+Pack FindOriginsAudioPack(const char *gameId);
+
 /** Finds every retro game's packs (converting Sonic CD 2011 packs on the way). */
 std::vector<RetroGame> ScanRetroGames()
 {
@@ -519,6 +530,7 @@ std::vector<RetroGame> ScanRetroGames()
         game.classic = FindPack(info.id, false);
         if (game.classic.state == PACK_OLDFORMAT)
             game.classic = ConvertInPlace(game.classic.path);
+        game.originsAudio = FindOriginsAudioPack(info.id);
         games.push_back(game);
     }
     return games;
