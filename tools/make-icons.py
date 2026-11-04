@@ -32,7 +32,9 @@ Usage (from the repository's root; needs Pillow and NumPy):
     python3 tools/make-icons.py [--header header.png] [--mania ../Sonic-Mania-Decompilation-Plus]
 """
 import argparse
+import io
 import json
+import struct
 from pathlib import Path
 
 import numpy as np
@@ -198,9 +200,44 @@ def write_mac(icon: Image.Image, root: Path) -> None:
     print(f"macOS: {len(images)} sizes in {out_dir.relative_to(root)}")
 
 
+def ico_bitmap(image: Image.Image) -> bytes:
+    """One icon image as Windows stores most of them: a 32-bit DIB (BGRA, bottom-up) and its AND mask."""
+    width, height = image.size
+    header = struct.pack("<IiiHHIIiiII", 40, width, height * 2, 1, 32, 0, 0, 0, 0, 0, 0)  # height x2: colour + mask
+    rgba = np.array(image.convert("RGBA"))
+    bgra = rgba[::-1, :, [2, 1, 0, 3]].tobytes()
+    mask_row = ((width + 31) // 32) * 4  # 1 bit per pixel, rows padded to 32 bits; all 0: the alpha channel decides
+    return header + bgra + bytes(mask_row * height)
+
+
+def write_ico(path: Path, icon: Image.Image, sizes: list) -> None:
+    """An .ico with every size in @p sizes: uncompressed bitmaps, and PNG for 256 pixels.
+
+    Pillow would store every size as PNG, which some parts of Windows (and
+    some resource compilers) only read at 256 pixels: Explorer's small views
+    and the title bar then fall back to another icon. Bitmaps work everywhere.
+    """
+    images = []
+    for size in sizes:
+        scaled = shrink(icon, size)
+        if size >= 256:
+            buffer = io.BytesIO()
+            scaled.save(buffer, format="PNG", optimize=True)
+            images.append((size, buffer.getvalue()))
+        else:
+            images.append((size, ico_bitmap(scaled)))
+    out = struct.pack("<HHH", 0, 1, len(images))  # reserved, type 1 (icon), count
+    offset = 6 + 16 * len(images)
+    for size, data in images:
+        side = 0 if size >= 256 else size  # 0 means 256
+        out += struct.pack("<BBBBHHII", side, side, 0, 0, 1, 32, len(data), offset)
+        offset += len(data)
+    path.write_bytes(out + b"".join(data for _, data in images))
+
+
 def write_windows(icon: Image.Image, root: Path) -> None:
     for name in ("RSDKv5U/RSDKv5U.ico", "RSDKv5/RSDKv5.ico"):
-        icon.save(root / name, format="ICO", sizes=[(s, s) for s in WINDOWS_SIZES])
+        write_ico(root / name, icon, WINDOWS_SIZES)
         print(f"Windows: {name}")
 
 
