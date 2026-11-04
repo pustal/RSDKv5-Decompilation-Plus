@@ -56,6 +56,16 @@ bool RenderDevice::Init()
         return false;
     }
 
+#if RETRO_PLATFORM == RETRO_LINUX && !RETRO_USE_ORIGINAL_CODE
+    // (Plus) The window's icon: Linux executables carry none (see WindowIcon.hpp).
+    SDL_Surface *icon = SDL_CreateRGBSurfaceWithFormatFrom((void *)kWindowIconPixels, kWindowIconSize, kWindowIconSize, 32,
+                                                           kWindowIconSize * 4, SDL_PIXELFORMAT_RGBA32);
+    if (icon) {
+        SDL_SetWindowIcon(window, icon);
+        SDL_FreeSurface(icon);
+    }
+#endif
+
     if (!videoSettings.windowed) {
         SDL_RestoreWindow(window);
         SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);

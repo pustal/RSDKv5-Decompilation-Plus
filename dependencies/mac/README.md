@@ -27,4 +27,4 @@ Put these in this folder (Git ignores them):
 
 ## App icon
 
-The app's icon is the R of the RSDK logo with the green PLUS, both taken from the repository's `header.png`: `Assets.xcassets/AppIcon.appiconset` holds every size macOS asks for, and `python3 dependencies/mac/make-icon.py` (Pillow and NumPy) draws them again if the header changes.
+The app's icon is the R of the RSDK logo with the green PLUS, both taken from the repository's `header.png`: `Assets.xcassets/AppIcon.appiconset` holds every size macOS asks for. `python3 tools/make-icons.py` (Pillow and NumPy) draws it again, with the other platforms' icons, if the header changes.

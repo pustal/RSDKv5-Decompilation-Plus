@@ -7,4 +7,3 @@
 !build-frameworks.sh
 !Assets.xcassets/
 !Assets.xcassets/**
-!make-icon.py

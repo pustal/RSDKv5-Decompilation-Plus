@@ -129,6 +129,11 @@ const RenderVertex rsdkVertexBuffer[24] =
 #endif
 // clang-format on
 
+#if RETRO_PLATFORM == RETRO_LINUX && !RETRO_USE_ORIGINAL_CODE
+// (Plus) The window's icon, set by the SDL2 and GLFW render devices.
+#include "WindowIcon.hpp"
+#endif
+
 #if RETRO_RENDERDEVICE_DIRECTX9
 #include "DX9/DX9RenderDevice.cpp"
 #elif RETRO_RENDERDEVICE_DIRECTX11

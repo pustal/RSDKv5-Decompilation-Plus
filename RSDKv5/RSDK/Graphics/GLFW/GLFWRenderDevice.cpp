@@ -85,6 +85,14 @@ GLFWwindow *RenderDevice::CreateGLFWWindow(void)
         PrintLog(PRINT_NORMAL, "ERROR: [GLFW] window creation failed");
         return NULL;
     }
+#if RETRO_PLATFORM == RETRO_LINUX && !RETRO_USE_ORIGINAL_CODE
+    // (Plus) The window's icon: Linux executables carry none (see WindowIcon.hpp).
+    GLFWimage icon;
+    icon.width  = kWindowIconSize;
+    icon.height = kWindowIconSize;
+    icon.pixels = (unsigned char *)kWindowIconPixels;
+    glfwSetWindowIcon(win, 1, &icon);
+#endif
     if (videoSettings.windowed) {
         // Center the window
         monitor = glfwGetPrimaryMonitor();

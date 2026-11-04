@@ -45,6 +45,8 @@ This fork (RSDKv5-Decompilation-Plus) adds, on top of the decompilation, a way t
 
 The code is in `RSDKv5/RSDK/Plus/` (one translation unit, included by `RetroEngine.cpp`); the engine calls it from places marked `(Plus)`.
 
+**Icons.** Every platform's app icon (macOS, Windows, Android, the Switch, and the window's icon on Linux) is the R of the RSDK logo with the green PLUS, drawn from `header.png` by `tools/make-icons.py` (Pillow and NumPy), which writes them all again if the header changes.
+
 A port that wraps the engine in its own launcher can tell the Plus module what only it knows, through the platform API at the end of `RSDKv5/RSDK/Plus/Plus.hpp`: more folders to find the retro packs in (a USB drive's, say), a line for the menu's main page and the Games page's pack hint, its own main-page entries, a per-frame callback on the engine's thread, and the menu's settings to read and apply. [SonicWebMania](https://github.com/pustal/SonicWebMania), the LG webOS TV app, uses it with no other change to the engine.
 
 
