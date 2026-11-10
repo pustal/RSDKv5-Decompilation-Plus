@@ -8,7 +8,8 @@
 // video in an IVF stream, and HCA sound encrypted with the key vgmstream
 // lists for Sonic Origins. The engine plays Theora video (Graphics/Video.cpp),
 // so "Convert Sonic Origins videos" (the Plus menu's Settings, or a port's
-// own page) decodes the VP9 (libvpx, dependencies/all/libvpx), scales it down
+// own page) decodes the VP9 (libvpx, dependencies/all/libvpx), scales it to
+// the engine's video size (RETRO_VIDEO_TEXTURE_W x _H, 1024x512)
 // and encodes it as Theora in Ogg, and stores the sound as an HCA file without
 // its encryption, which the engine plays (Audio/HcaAudio.hpp). One pack per
 // game, "<game>-origins-video.rsdk", next to the "origins" folder the .usm
@@ -235,14 +236,22 @@ std::string VideoMessage()
 
 #if PLUS_VIDEO_CONVERTER
 
-/** Height of the converted videos (the width follows the picture's shape): the engine draws them at most at the window's size. */
-const int32 kVideoHeight = 360;
+/**
+ * Size of the converted videos: the engine's video texture
+ * (RETRO_VIDEO_TEXTURE_W x RETRO_VIDEO_TEXTURE_H, Graphics/Drawing.hpp). The
+ * DirectX and OpenGL renderers copy a frame into a texture that size and draw
+ * all of it over the screen, so a smaller video would fill only part of it;
+ * Sonic Mania's own videos are this size. The 16:9 picture is stretched to it
+ * (2:1) and drawn back at 16:9.
+ */
+const int32 kVideoWidth  = RETRO_VIDEO_TEXTURE_W;
+const int32 kVideoHeight = RETRO_VIDEO_TEXTURE_H;
 /** Highest frame rate kept (Sonic CD's 60 fps videos keep every other frame). */
 const int32 kMaxVideoFps = 30;
 /** Sound tracks kept from a .usm (Sonic CD's videos: Japanese, then American). */
 const uint8 kMaxSoundTracks = 2;
 /** Theora's quality, 0 to 63. */
-const int32 kTheoraQuality = 44;
+const int32 kTheoraQuality = 40;
 
 /**
  * A .usm file read chunk by chunk: "CRID", "@SFV" (video) and "@SFA" (sound)
@@ -485,7 +494,7 @@ private:
                 *error = "unexpected picture format";
                 return false;
             }
-            if (!encoder && !StartEncoder(image->d_w, image->d_h, error))
+            if (!encoder && !StartEncoder(error))
                 return false;
 
             // Encoded one frame late, so the last one can be marked as such.
@@ -501,11 +510,11 @@ private:
         return true;
     }
 
-    /** Sets up Theora for pictures of @p sourceW x @p sourceH, and writes its headers. */
-    bool StartEncoder(uint32 sourceW, uint32 sourceH, std::string *error)
+    /** Sets up Theora (kVideoWidth x kVideoHeight), and writes its headers. */
+    bool StartEncoder(std::string *error)
     {
-        pictureHeight = kVideoHeight < (int32)sourceH ? kVideoHeight : (int32)sourceH & ~1;
-        pictureWidth  = (int32)((uint64)sourceW * pictureHeight / sourceH) & ~1;
+        pictureWidth  = kVideoWidth;
+        pictureHeight = kVideoHeight;
         pending.Allocate((pictureWidth + 15) & ~15, (pictureHeight + 15) & ~15);
 
         th_info info;
@@ -518,8 +527,9 @@ private:
         info.pic_y              = 0;
         info.fps_numerator      = (ogg_uint32_t)(outputFps * 1000.0 + 0.5);
         info.fps_denominator    = 1000;
-        info.aspect_numerator   = 1;
-        info.aspect_denominator = 1;
+        // Pixels 8:9 wide, so other players show the stretched picture at 16:9 too.
+        info.aspect_numerator   = 8;
+        info.aspect_denominator = 9;
         info.colorspace         = TH_CS_UNSPECIFIED;
         info.pixel_fmt          = TH_PF_420;
         info.target_bitrate     = 0;
