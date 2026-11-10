@@ -11,7 +11,8 @@
 //   - Games: Sonic Mania and the retro games found, to switch to;
 //   - Achievements: the running game's list;
 //   - Settings: the official Plus DLCs (off unless the player owns and turns
-//     them on), converting Sonic Origins' audio (PlusOrigins.cpp), Sonic
+//     them on), converting Sonic Origins' audio and videos (PlusOrigins.cpp,
+//     PlusVideo.cpp), Sonic
 //     Mania audio in the retro games, similar music, Mania's remixes, and the
 //     touch controls (Android);
 //   - the save screen of the retro games (PlusRetro.cpp): mode, slots, a
@@ -401,6 +402,7 @@ void Page_Achievements()
 enum SettingsItem {
     SETTING_PLUSDLC,
     SETTING_ORIGINSAUDIO,
+    SETTING_ORIGINSVIDEO,
     SETTING_MANIAAUDIO,
     SETTING_SIMILARMUSIC,
     SETTING_REMIXES,
@@ -412,7 +414,7 @@ enum SettingsItem {
 /** The Settings page's entries, in order. */
 std::vector<SettingsItem> SettingsItems()
 {
-    std::vector<SettingsItem> items = { SETTING_PLUSDLC, SETTING_ORIGINSAUDIO, SETTING_MANIAAUDIO, SETTING_SIMILARMUSIC, SETTING_REMIXES };
+    std::vector<SettingsItem> items = { SETTING_PLUSDLC, SETTING_ORIGINSAUDIO, SETTING_ORIGINSVIDEO, SETTING_MANIAAUDIO, SETTING_SIMILARMUSIC, SETTING_REMIXES };
     if (TouchControlsAvailable()) {
         items.push_back(SETTING_TOUCHCONTROLS);
         items.push_back(SETTING_TOUCHOPACITY);
@@ -446,6 +448,12 @@ void Page_Settings()
                 else
                     items.push_back("Convert Sonic Origins audio");
                 break;
+            case SETTING_ORIGINSVIDEO:
+                if (videoJob.running)
+                    items.push_back("Converting Sonic Origins videos: " + std::to_string((int32)videoJob.percent) + "%");
+                else
+                    items.push_back(VideoConverterAvailable() ? "Convert Sonic Origins videos" : "Convert Sonic Origins videos (not in this build)");
+                break;
             case SETTING_MANIAAUDIO: items.push_back(std::string("Sonic Mania audio in retro games: ") + OnOff(ManiaAudioEnabled())); break;
             case SETTING_SIMILARMUSIC: items.push_back(std::string("Similar Mania music: ") + OnOff(SimilarMusicEnabled())); break;
             case SETTING_REMIXES: items.push_back(std::string("Sonic Mania remixes: ") + OnOff(RemixesEnabled())); break;
@@ -475,6 +483,13 @@ void Page_Settings()
                                                        : plus.texts.originsAudioHint;
             note += " They play first, then the earlier release's, then Sonic Mania's.";
             break;
+        case SETTING_ORIGINSVIDEO:
+            note = "Sonic CD's opening and endings, and Sonic Origins' intro and outro of each game and its Sonic Team logo, from "
+                   "its image/x64/raw/movie folder (the .usm files without _4k or _anim). ";
+            note += plus.texts.originsVideoHint.empty() ? "Copy them into the \"origins\" folder next to the retro packs, then press OK."
+                                                       : plus.texts.originsVideoHint;
+            note += " Every frame is decoded: it takes a while.";
+            break;
         case SETTING_PLUSDLC:
             note = PlusDLCAvailable() ? "Sonic Mania Plus (Encore mode, Mighty, Ray...) and Sonic Origins Plus (Amy, Knuckles in "
                                         "Sonic CD). Turn it on only if you own them. Changing it restarts the game."
@@ -499,6 +514,8 @@ void Page_Settings()
     y = DrawNote(note, y, kItemColor);
     if (selected == SETTING_ORIGINSAUDIO && !OriginsMessage().empty())
         y = DrawNote(OriginsMessage(), y, originsJob.running ? kDimColor : kItemColor);
+    if (selected == SETTING_ORIGINSVIDEO && !VideoMessage().empty())
+        y = DrawNote(VideoMessage(), y, videoJob.running ? kDimColor : kItemColor);
     if (selected >= SETTING_MANIAAUDIO && selected <= SETTING_REMIXES)
         DrawNote("Applies the next time a retro game starts.", y, kDimColor);
 
@@ -526,10 +543,10 @@ void Page_Settings()
         CloseMenu();
         return;
     }
-    if (selected == SETTING_ORIGINSAUDIO) {
+    if (selected == SETTING_ORIGINSAUDIO || selected == SETTING_ORIGINSVIDEO) {
         // A running retro game restarts when it is done.
         if (input.confirm)
-            StartOriginsConversion();
+            selected == SETTING_ORIGINSAUDIO ? StartOriginsConversion() : StartVideoConversion();
         return;
     }
     if (!(input.confirm || input.left || input.right))
@@ -548,6 +565,7 @@ void Page_Settings()
         case SETTING_TOUCHOPACITY: StepTouchOpacity(input.left ? -1 : 1); break;
         case SETTING_PLUSDLC:
         case SETTING_ORIGINSAUDIO:
+        case SETTING_ORIGINSVIDEO:
         case SETTING_BACK: break;
     }
 }

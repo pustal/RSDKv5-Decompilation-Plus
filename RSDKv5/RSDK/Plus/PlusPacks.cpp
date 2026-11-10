@@ -14,8 +14,9 @@
 //     its scripts are the bytecode the engine runs.
 // Sonic CD's 2011 packs use the original RSDKv3 format, which the engine
 // cannot open: they are converted in place the first time they are found.
-// A third pack, <game>-origins-audio.rsdk, is Sonic Origins' own audio,
-// converted from the player's files on request (PlusOrigins.cpp).
+// Two more, <game>-origins-audio.rsdk and <game>-origins-video.rsdk, are
+// Sonic Origins' own audio and videos, converted from the player's files on
+// request (PlusOrigins.cpp, PlusVideo.cpp).
 
 namespace RSDK
 {
@@ -60,6 +61,7 @@ struct RetroGame {
     Pack origins;
     Pack classic;
     Pack originsAudio; ///< Sonic Origins' audio, converted (PlusOrigins.cpp).
+    Pack originsVideo; ///< Sonic Origins' videos, converted (PlusVideo.cpp).
 
     /** An Origins pack, or a classic pack that plays on its own. */
     bool Playable() const { return origins.state == PACK_READY || (classic.state == PACK_READY && classic.standalone); }
@@ -516,8 +518,9 @@ Pack FindPack(const char *gameId, bool origins)
     return pack;
 }
 
-/** A game's converted Sonic Origins audio pack (PlusOrigins.cpp). */
+/** A game's converted Sonic Origins audio and video packs (PlusOrigins.cpp, PlusVideo.cpp). */
 Pack FindOriginsAudioPack(const char *gameId);
+Pack FindOriginsVideoPack(const char *gameId);
 
 /** Finds every retro game's packs (converting Sonic CD 2011 packs on the way). */
 std::vector<RetroGame> ScanRetroGames()
@@ -531,6 +534,7 @@ std::vector<RetroGame> ScanRetroGames()
         if (game.classic.state == PACK_OLDFORMAT)
             game.classic = ConvertInPlace(game.classic.path);
         game.originsAudio = FindOriginsAudioPack(info.id);
+        game.originsVideo = FindOriginsVideoPack(info.id);
         games.push_back(game);
     }
     return games;

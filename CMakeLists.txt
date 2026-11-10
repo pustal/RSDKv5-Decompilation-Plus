@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(RetroEngine)
 
-set(DECOMP_VERSION 1.4.0)
+set(DECOMP_VERSION 1.5.0)
 
 set(RETRO_REVISION 3 CACHE STRING "What revision to compile for. Defaults to v5U = 3")
 option(RETRO_DISABLE_PLUS "Forces the Plus DLC off. Without it the DLC is still off by default: the player turns it on (Settings.ini Game:plusDLC, or the Plus menu)." OFF)
@@ -10,6 +10,8 @@ option(RETRO_DISABLE_PLUS "Forces the Plus DLC off. Without it the DLC is still 
 option(RETRO_MOD_LOADER "Enables or disables the mod loader." ON)
 option(RETRO_PLUS "Enables this fork's Plus features: retro games, the Plus menu, Sonic Mania audio for retro games (needs v5U and the mod loader). Not the Sonic Mania Plus DLC, see RETRO_DISABLE_PLUS." ON)
 set(RETRO_MOD_LOADER_VER 2 CACHE STRING "Sets the mod loader version. Defaults to latest")
+option(PLUS_VIDEO_CONVERTER "Plus: converts Sonic Origins' videos (VP9) to Theora in the app. Builds libvpx's VP9 decoder (dependencies/all/libvpx) and needs Theora's encoder (libtheora, not only libtheoradec). Converted videos play without it." ON)
+option(PLUS_THEORA_ENCODER_LINKED "Set by a port that links Theora's encoder itself (SonicWebMania): the engine then does not look for it." OFF)
 
 option(RETRO_DISABLE_LOG "Disables the log. Defaults to OFF." OFF)
 
@@ -166,6 +168,37 @@ target_compile_definitions(RetroEngine PRIVATE
     
     RETRO_DEV_EXTRA="${RETRO_SUBSYSTEM} - ${DECOMP_VERSION}"
 )
+
+# (Plus) Sonic Origins' video converter (RSDKv5/RSDK/Plus/PlusVideo.cpp): libvpx's
+# VP9 decoder, plain C (see dependencies/all/libvpx/README.md).
+if(PLUS_VIDEO_CONVERTER AND RETRO_PLUS AND RETRO_MOD_LOADER AND RETRO_REVISION STREQUAL "3")
+    file(GLOB_RECURSE PLUS_VPX_SOURCES CONFIGURE_DEPENDS dependencies/all/libvpx/*.c)
+    add_library(plus_vpx STATIC ${PLUS_VPX_SOURCES})
+    target_include_directories(plus_vpx PRIVATE dependencies/all/libvpx dependencies/all/libvpx/config)
+    set_target_properties(plus_vpx PROPERTIES C_STANDARD 99 POSITION_INDEPENDENT_CODE ON)
+    if(NOT MSVC)
+        target_compile_options(plus_vpx PRIVATE -O2 -w)
+    endif()
+    find_package(Threads REQUIRED)
+    target_link_libraries(plus_vpx Threads::Threads)
+
+    target_include_directories(RetroEngine PRIVATE dependencies/all/libvpx)
+    target_compile_definitions(RetroEngine PRIVATE PLUS_VIDEO_CONVERTER=1)
+    target_link_libraries(RetroEngine plus_vpx)
+
+    # Theora's encoder: built with the decoder when the engine compiles libtheora
+    # itself (COMPILE_THEORA); a separate library where pkg-config finds it.
+    if(NOT COMPILE_THEORA AND NOT PLUS_THEORA_ENCODER_LINKED)
+        find_package(PkgConfig QUIET)
+        if(PKG_CONFIG_FOUND)
+            pkg_check_modules(THEORAENC theoraenc)
+            if(THEORAENC_FOUND)
+                target_link_libraries(RetroEngine ${THEORAENC_STATIC_LIBRARIES})
+                target_link_directories(RetroEngine PRIVATE ${THEORAENC_STATIC_LIBRARY_DIRS})
+            endif()
+        endif()
+    endif()
+endif()
 
 if(WITH_RSDK)
     if(NOT GAME_STATIC)

@@ -26,6 +26,10 @@ bool32 RSDK::LoadVideo(const char *filename, double startDelay, bool32 (*skipCal
     if (ENGINE_VERSION == 3 && RSDK::Legacy::gameMode == RSDK::Legacy::v3::ENGINE_VIDEOWAIT)
         return false;
 #endif
+#if RETRO_USE_PLUS
+    if (ENGINE_VERSION == 4 && RSDK::Legacy::gameMode == RSDK::Legacy::v4::ENGINE_VIDEOWAIT)
+        return false;
+#endif
 
     char fullFilePath[0x80];
     sprintf_s(fullFilePath, sizeof(fullFilePath), "Data/Video/%s", filename);
@@ -152,7 +156,7 @@ bool32 RSDK::LoadVideo(const char *filename, double startDelay, bool32 (*skipCal
                 if (ENGINE_VERSION == 5)
                     engine.storedState = sceneInfo.state;
 #if RETRO_REV0U
-                else if (ENGINE_VERSION == 3)
+                else if (ENGINE_VERSION == 3 || (RETRO_USE_PLUS && ENGINE_VERSION == 4))
                     engine.storedState = RSDK::Legacy::gameMode;
 #endif
                 engine.displayTime         = 0.0;
@@ -171,6 +175,10 @@ bool32 RSDK::LoadVideo(const char *filename, double startDelay, bool32 (*skipCal
                     case TH_PF_444: videoSettings.shaderID = SHADER_YUV_444; break;
                 }
 
+#if RETRO_USE_PLUS
+                // (Plus) A converted Sonic Origins video brings its sound in a file of its own.
+                RSDK::Plus::OnVideoStarted(filename);
+#endif
                 engine.skipCallback = NULL;
                 ProcessVideo();
                 engine.skipCallback = skipCallback;
@@ -181,6 +189,10 @@ bool32 RSDK::LoadVideo(const char *filename, double startDelay, bool32 (*skipCal
 #if RETRO_REV0U
                 else if (ENGINE_VERSION == 3)
                     RSDK::Legacy::gameMode = RSDK::Legacy::v3::ENGINE_VIDEOWAIT;
+#endif
+#if RETRO_USE_PLUS
+                else if (ENGINE_VERSION == 4)
+                    RSDK::Legacy::gameMode = RSDK::Legacy::v4::ENGINE_VIDEOWAIT;
 #endif
 
                 return true;
@@ -279,8 +291,11 @@ void RSDK::ProcessVideo()
         if (ENGINE_VERSION == 5)
             sceneInfo.state = engine.storedState;
 #if RETRO_REV0U
-        else if (ENGINE_VERSION == 3)
+        else if (ENGINE_VERSION == 3 || (RETRO_USE_PLUS && ENGINE_VERSION == 4))
             RSDK::Legacy::gameMode = engine.storedState;
+#endif
+#if RETRO_USE_PLUS
+        RSDK::Plus::OnVideoFinished();
 #endif
     }
 }

@@ -24,6 +24,10 @@
  *   packs) into "<game>-origins-audio.rsdk" packs (PlusOrigins.cpp), which the
  *   engine plays (Audio/HcaAudio.hpp). A sound comes from Sonic Origins
  *   first, then from the earlier release's pack, then from Sonic Mania's.
+ * - Sonic Origins' videos (its .usm files, in the same folder), converted
+ *   into "<game>-origins-video.rsdk" packs of Theora video (PlusVideo.cpp):
+ *   Sonic CD's opening and endings, and Origins' animated intro and outro of
+ *   each game and its Sonic Team logo, which Plus plays itself.
  * - Sonic Mania's pack lends the retro games the music and sound effects
  *   their packs lack (PlusAudio.cpp).
  * - The Plus menu (PlusMenu.cpp), opened with Select (Tab on a keyboard),
@@ -134,6 +138,19 @@ void ShowLegacyAchievements();
 void ShowLegacyLeaderboards();
 
 /**
+ * Called by LoadVideo() once video @p fileName ("Opening.ogv") has started:
+ * a converted Sonic Origins video's sound ("Data/Music/Video/Opening.hca")
+ * plays on the stream channel (PlusVideo.cpp).
+ */
+void OnVideoStarted(const char *fileName);
+
+/** Called by ProcessVideo() when a video ends or is skipped: stops the sound OnVideoStarted() started. */
+void OnVideoFinished();
+
+/** True while a video's own sound (OnVideoStarted()) plays: GetVideoStreamPos() keeps time with it. */
+bool32 VideoSoundPlaying();
+
+/**
  * A retro game is loading sound effect @p name (relative to Data/SoundFX/):
  * when its packs lack it, picks a Sonic Mania stand-in (PlusAudio.cpp).
  *
@@ -174,6 +191,7 @@ struct PlatformTexts {
     std::string menuInfo; ///< A line on the main page (how to reach the port's transfer page, say); "" for none.
     std::string packHint; ///< Where the retro packs go, on the Games page; "" for the default ("retro" folder).
     std::string originsAudioHint; ///< Where Sonic Origins' sound files go, on the Settings page; "" for the default.
+    std::string originsVideoHint; ///< Where Sonic Origins' video files go, on the Settings page; "" for the default.
 };
 
 /** Sets the texts above. */
@@ -238,6 +256,33 @@ bool32 StartOriginsAudioConversion();
 
 /** The conversion's progress or result. Any thread. */
 OriginsAudioStatus GetOriginsAudioStatus();
+
+/**
+ * Sonic Origins' videos: the .usm files the video converter reads, from
+ * Sonic Origins' image/x64/raw/movie folder, put in the same "origins"
+ * folder as the audio's files (the 1920x1080 ones; not the _4k or _anim
+ * copies). Sonic CD: its opening and endings; each game: Origins' intro and
+ * outro; all three: the Sonic Team logo.
+ */
+const char *const kOriginsVideoFileNames[] = { "sonicteam_logo.usm",     "hite_sonic1_intro.usm",  "hite_sonic1_outro.usm",
+                                               "hite_sonic2_intro.usm",  "hite_sonic2_outro.usm",  "soniccd_op.usm",
+                                               "cd_ed_good.usm",         "cd_ed_bad.usm",          "hite_soniccd_intro.usm",
+                                               "hite_soniccd_outro.usm" };
+
+/** Whether this build converts videos (built with PLUS_VIDEO_CONVERTER: libvpx and Theora's encoder). */
+bool32 OriginsVideoConversionAvailable();
+
+/**
+ * Starts converting Sonic Origins' videos, on a thread of its own: it decodes
+ * every frame (slow: minutes on a computer, an hour or more on a TV). When it
+ * ends, a retro game running restarts with its new videos. Any thread.
+ *
+ * @return False if a conversion is already running, or this build cannot convert.
+ */
+bool32 StartOriginsVideoConversion();
+
+/** The video conversion's progress or result. Any thread. */
+OriginsAudioStatus GetOriginsVideoStatus();
 
 /**
  * Applies and saves @p settings, as the menu's Settings page does: a

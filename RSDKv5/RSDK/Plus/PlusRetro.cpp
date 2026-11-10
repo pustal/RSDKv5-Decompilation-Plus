@@ -608,7 +608,7 @@ bool32 RSDK::Plus::OnLegacyStageLoad(int32 engineVersion)
         // The save screen was just answered: this is the load it held.
         retroSession.resumeLoad = false;
     }
-    else if (fromTitle && toZone && !demo) {
+    else if (fromTitle && toZone && !demo && !cutscenes.resumeLoad) { // (After a cutscene the choice was made already.)
         if (engineVersion == 4) {
             Legacy::ReadSaveRAM(); // A missing SGame.bin leaves the memory (all slots empty) as it is.
             retroSession.pendingStart = START_SAVESLOTS;
@@ -628,6 +628,9 @@ bool32 RSDK::Plus::OnLegacyStageLoad(int32 engineVersion)
             GoToCdMenu();
         }
     }
+    // Sonic Origins' cutscenes, when converted (PlusVideo.cpp): the load waits for them.
+    if (PlayCutsceneBeforeLoad(retroSession.previousCategory, retroSession.previousName, demo))
+        return true;
     SyncCoins();
 
     retroSession.previousCategory = sceneInfo.activeCategory;

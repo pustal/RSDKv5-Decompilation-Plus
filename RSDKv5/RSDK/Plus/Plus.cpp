@@ -26,6 +26,7 @@
 
 #include "PlusPacks.cpp"
 #include "PlusOrigins.cpp"
+#include "PlusVideo.cpp"
 
 namespace RSDK
 {
@@ -316,6 +317,8 @@ bool LoadGamePacks(const std::string &id)
     // Never buffered: Sonic CD's is close to 300 MB.
     if (game.HasOriginsAudio() && !LoadDataPack(game.originsAudio.path.c_str(), 0, false))
         PrintLog(PRINT_NORMAL, "[Plus] Could not load %s", game.originsAudio.path.c_str());
+    if (game.originsVideo.state == PACK_READY && !LoadDataPack(game.originsVideo.path.c_str(), 0, false))
+        PrintLog(PRINT_NORMAL, "[Plus] Could not load %s", game.originsVideo.path.c_str());
     if (origins && game.HasSoundPack() && !LoadDataPack(game.classic.path.c_str(), 0, plus.useBuffer))
         PrintLog(PRINT_NORMAL, "[Plus] Could not load %s", game.classic.path.c_str());
     if (plus.config.maniaAudio && plus.maniaAvailable && !LoadAudioDataPack(plus.maniaDataFile.c_str()))
@@ -339,6 +342,7 @@ void EnterGame(const std::string &id)
 {
     plus.current = id;
     ResetRetroSession();
+    ResetCutsceneSession();
     if (IsRetroGame(id)) {
         EnsureSaveFolder(); // Its achievements are installed when its first stage loads.
         return;
@@ -491,6 +495,14 @@ void RSDK::Plus::Update()
         if (game && game->HasOriginsAudio())
             RequestSwitch(plus.current);
     }
+    // The same for the videos (PlusVideo.cpp).
+    if (videoJob.finished.exchange(false)) {
+        plus.games            = ScanRetroGames();
+        const RetroGame *game = FindRetroGame(plus.current);
+        Notify(VideoMessage());
+        if (game && game->originsVideo.state == PACK_READY)
+            RequestSwitch(plus.current);
+    }
 
     if (plus.frameCallback)
         plus.frameCallback();
@@ -530,6 +542,19 @@ RSDK::Plus::Settings RSDK::Plus::CurrentSettings()
 }
 
 bool32 RSDK::Plus::StartOriginsAudioConversion() { return StartOriginsConversion(); }
+
+bool32 RSDK::Plus::StartOriginsVideoConversion() { return StartVideoConversion(); }
+
+bool32 RSDK::Plus::OriginsVideoConversionAvailable() { return VideoConverterAvailable(); }
+
+RSDK::Plus::OriginsAudioStatus RSDK::Plus::GetOriginsVideoStatus()
+{
+    OriginsAudioStatus status;
+    status.running = videoJob.running;
+    status.percent = videoJob.percent;
+    status.message = VideoMessage();
+    return status;
+}
 
 RSDK::Plus::OriginsAudioStatus RSDK::Plus::GetOriginsAudioStatus()
 {
@@ -577,6 +602,7 @@ void RSDK::Plus::Notify(const std::string &text)
 void RSDK::Plus::Release()
 {
     StopOriginsConversion();
+    StopVideoConversion();
     if (IsRetroGame(plus.current) && engine.version != 5 && GlobalExists("game.coinCount"))
         SyncCoins();
     plus.config.lastGame = plus.current;

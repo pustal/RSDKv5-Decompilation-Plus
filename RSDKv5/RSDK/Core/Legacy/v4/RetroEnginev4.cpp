@@ -298,6 +298,14 @@ void RSDK::Legacy::v4::ProcessEngine()
         case ENGINE_INITPAUSE:
         case ENGINE_EXITPAUSE: gameMode = ENGINE_MAINGAME; break;
 
+#if RETRO_USE_PLUS
+        // (Plus) The 2013 games play no videos; the Plus module plays Sonic Origins' cutscenes.
+        case ENGINE_VIDEOWAIT:
+            ProcessInput();
+            ProcessVideo();
+            break;
+#endif
+
         case ENGINE_ENDGAME:
         case ENGINE_RESETGAME:
             sceneInfo.activeCategory = 0;

@@ -37,7 +37,7 @@ namespace RSDK
 // (Plus) Room for two packs at once: a retro game's data plus the pack
 // its music and sound effects come from (Game:extraDataFile in Settings.ini).
 #define DATAFILE_COUNT (0x4000)
-#define DATAPACK_COUNT (4)
+#define DATAPACK_COUNT (6) // (Plus) 4 upstream: a retro game also loads its converted Sonic Origins audio and video packs.
 
 enum Scopes {
     SCOPE_NONE,

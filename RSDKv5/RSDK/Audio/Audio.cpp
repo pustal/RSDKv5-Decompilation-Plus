@@ -694,8 +694,12 @@ uint32 RSDK::GetChannelPos(uint32 channel)
 double RSDK::GetVideoStreamPos()
 {
 #if RETRO_USE_PLUS
-    if (hcaStream)
-        return -1.0; // Videos' audio is Ogg Vorbis.
+    // (Plus) A converted Sonic Origins video's sound (Plus/PlusVideo.cpp) is the clock it plays to.
+    if (hcaStream) {
+        if (RSDK::Plus::VideoSoundPlaying() && channels[0].state == CHANNEL_STREAM)
+            return hcaStream->Position() / (double)AUDIO_FREQUENCY;
+        return -1.0;
+    }
 #endif
     if (channels[0].state == CHANNEL_STREAM && AudioDevice::audioState && AudioDevice::initializedAudioChannels && vorbisInfo->current_loc_valid) {
         return vorbisInfo->current_loc / (double)AUDIO_FREQUENCY;

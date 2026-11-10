@@ -9,6 +9,9 @@ enum RetroStates {
     ENGINE_EXITPAUSE = 6,
     ENGINE_ENDGAME   = 7,
     ENGINE_RESETGAME = 8,
+#if RETRO_USE_PLUS
+    ENGINE_VIDEOWAIT = 9, ///< (Plus) A video plays (Sonic Origins' cutscenes, see Plus/PlusVideo.cpp), as in RSDKv3.
+#endif
 };
 
 bool32 LoadGameConfig(const char *filepath);
