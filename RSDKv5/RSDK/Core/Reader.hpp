@@ -73,7 +73,8 @@ struct RSDKFileInfo {
     // releases), whose keys come from the file size instead of its name.
     uint8 sizeKeys;
     // (Plus) Set for files of the audio pack (see LoadAudioDataPack):
-    // only found under Data/SoundFX/ and Data/Music/.
+    // AUDIOPACK_AUDIO, found under Data/SoundFX/, Data/Music/ and
+    // Data/Shaders/; AUDIOPACK_SHADERS, only under Data/Shaders/.
     uint8 audioOnly;
 };
 
@@ -103,7 +104,11 @@ bool32 OpenDataFile(FileInfo *info, const char *filename);
 // retro game: loaded after the game's packs, and only looked at for paths
 // under Data/SoundFX/ and Data/Music/ so its other files can never stand in
 // for the retro game's own (Settings.ini Game:audioDataFile).
-bool32 LoadAudioDataPack(const char *filePath);
+// It also lends its shaders (Data/Shaders/), which the retro games' packs
+// lack and the DirectX and OpenGL renderers need (videos, screen filters);
+// with @p lendAudio false, only those.
+enum AudioPackUse { AUDIOPACK_NONE, AUDIOPACK_AUDIO, AUDIOPACK_SHADERS };
+bool32 LoadAudioDataPack(const char *filePath, bool32 lendAudio = true);
 
 #if RETRO_USE_PLUS
 // (Plus) Forgets every data pack (and frees those held in memory), so another

@@ -206,6 +206,17 @@ static bool32 IsAudioPath(const char *lowerPath)
     return strncmp(lowerPath, "data/soundfx/", 13) == 0 || strncmp(lowerPath, "data/music/", 11) == 0;
 }
 
+// (Plus) True for the renderers' shaders, which the audio pack always serves:
+// a retro game's packs have none, and without them the DirectX and OpenGL
+// renderers cannot show videos (their YUV shaders) or filter the screen.
+static bool32 IsShaderPath(const char *lowerPath) { return strncmp(lowerPath, "data/shaders/", 13) == 0; }
+
+// (Plus) Whether audio pack entry @p file may serve @p lowerPath (see LoadAudioDataPack()).
+static bool32 AudioPackServes(const RSDKFileInfo *file, const char *lowerPath)
+{
+    return IsShaderPath(lowerPath) || (file->audioOnly == AUDIOPACK_AUDIO && IsAudioPath(lowerPath));
+}
+
 #if RETRO_USE_PLUS
 void RSDK::UnloadDataPacks()
 {
@@ -221,13 +232,13 @@ void RSDK::UnloadDataPacks()
 }
 #endif
 
-bool32 RSDK::LoadAudioDataPack(const char *filePath)
+bool32 RSDK::LoadAudioDataPack(const char *filePath, bool32 lendAudio)
 {
     const int32 firstEntry = dataFileListCount;
     // Never buffered: Sonic Mania's pack is far larger than a retro game's.
     if (!LoadDataPack(filePath, 0, false))
         return false;
-    for (int32 f = firstEntry; f < dataFileListCount; ++f) dataFileList[f].audioOnly = true;
+    for (int32 f = firstEntry; f < dataFileListCount; ++f) dataFileList[f].audioOnly = lendAudio ? AUDIOPACK_AUDIO : AUDIOPACK_SHADERS;
     return true;
 }
 
@@ -240,8 +251,12 @@ int32 RSDK::FindDataFileSource(const char *filename)
 
     // Entries are in pack order, so the first match is the one OpenDataFile uses.
     for (int32 f = 0; f < dataFileListCount; ++f) {
-        if (HASH_MATCH_MD5(hash, dataFileList[f].hash))
-            return dataFileList[f].audioOnly ? DATAFILE_SOURCE_AUDIO : DATAFILE_SOURCE_GAME;
+        if (!HASH_MATCH_MD5(hash, dataFileList[f].hash))
+            continue;
+        if (!dataFileList[f].audioOnly)
+            return DATAFILE_SOURCE_GAME;
+        if (AudioPackServes(&dataFileList[f], hashBuffer))
+            return DATAFILE_SOURCE_AUDIO;
     }
     return DATAFILE_SOURCE_NONE;
 }
@@ -258,8 +273,8 @@ bool32 RSDK::OpenDataFile(FileInfo *info, const char *filename)
 
         if (!HASH_MATCH_MD5(hash, file->hash))
             continue;
-        // (Plus) The audio pack only serves music and sound effects.
-        if (file->audioOnly && !IsAudioPath(hashBuffer))
+        // (Plus) The audio pack only serves music, sound effects and shaders.
+        if (file->audioOnly && !AudioPackServes(file, hashBuffer))
             continue;
 
         info->usingFileBuffer = file->useFileBuffer;

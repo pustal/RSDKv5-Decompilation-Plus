@@ -321,8 +321,10 @@ bool LoadGamePacks(const std::string &id)
         PrintLog(PRINT_NORMAL, "[Plus] Could not load %s", game.originsVideo.path.c_str());
     if (origins && game.HasSoundPack() && !LoadDataPack(game.classic.path.c_str(), 0, plus.useBuffer))
         PrintLog(PRINT_NORMAL, "[Plus] Could not load %s", game.classic.path.c_str());
-    if (plus.config.maniaAudio && plus.maniaAvailable && !LoadAudioDataPack(plus.maniaDataFile.c_str()))
-        PrintLog(PRINT_NORMAL, "[Plus] Could not load Sonic Mania's pack for audio");
+    // Sonic Mania's pack also lends its shaders, which the renderers need for
+    // the videos: loaded even with its audio off (then for the shaders only).
+    if (plus.maniaAvailable && !LoadAudioDataPack(plus.maniaDataFile.c_str(), plus.config.maniaAudio))
+        PrintLog(PRINT_NORMAL, "[Plus] Could not load Sonic Mania's pack for audio and shaders");
     engine.gameReleaseID = origins ? 1 : 0; // Game:gameType: 1 Sonic Origins, 0 the earlier releases.
     return true;
 }
