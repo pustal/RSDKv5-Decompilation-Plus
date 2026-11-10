@@ -518,7 +518,7 @@ bool RenderDevice::CheckFPSCap()
 }
 void RenderDevice::UpdateFPSCap() { performanceCount.QuadPart = curFrequency.QuadPart + initialFrequency.LowPart; }
 
-void RenderDevice::InitVertexBuffer()
+void RenderDevice::WriteVertexBuffer()
 {
     RenderVertex vertBuffer[sizeof(rsdkVertexBuffer) / sizeof(RenderVertex)];
     memcpy(vertBuffer, rsdkVertexBuffer, sizeof(rsdkVertexBuffer));
@@ -539,12 +539,21 @@ void RenderDevice::InitVertexBuffer()
         if (vertex->tex.y)
             vertex->tex.y = screens[0].size.y * (1.0 / textureSize.y);
     }
+#if RETRO_USE_PLUS
+    // (Plus) The image/video quad covers the picture's part of its texture.
+    FitImageQuad(vertBuffer, vertCount + 6);
+#endif
 
     D3D11_MAPPED_SUBRESOURCE resource;
     if (SUCCEEDED(dx11Context->Map(dx11VertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource))) {
         memcpy(resource.pData, vertBuffer, sizeof(vertBuffer));
         dx11Context->Unmap(dx11VertexBuffer, 0);
     }
+}
+
+void RenderDevice::InitVertexBuffer()
+{
+    WriteVertexBuffer();
 
     // Set/Update vertex buffer
     UINT stride = sizeof(RenderVertex);
@@ -2058,6 +2067,11 @@ LRESULT CALLBACK RenderDevice::WindowEventCallback(HWND hRecipient, UINT message
 
 void RenderDevice::SetupImageTexture(int32 width, int32 height, uint8 *imagePixels)
 {
+#if RETRO_USE_PLUS
+    // (Plus) Keep the image/video quad on this picture (see FitImageQuad()).
+    if (SetImageQuadSize(width, height))
+        WriteVertexBuffer();
+#endif
     if (!imagePixels)
         return;
 
@@ -2082,6 +2096,11 @@ void RenderDevice::SetupImageTexture(int32 width, int32 height, uint8 *imagePixe
 void RenderDevice::SetupVideoTexture_YUV420(int32 width, int32 height, uint8 *yPlane, uint8 *uPlane, uint8 *vPlane, int32 strideY, int32 strideU,
                                             int32 strideV)
 {
+#if RETRO_USE_PLUS
+    // (Plus) Keep the image/video quad on this picture (see FitImageQuad()).
+    if (SetImageQuadSize(width, height))
+        WriteVertexBuffer();
+#endif
     D3D11_MAPPED_SUBRESOURCE mappedResource;
     if (SUCCEEDED(dx11Context->Map(imageTexture, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource))) {
         DWORD *pixels = (DWORD *)mappedResource.pData;
@@ -2129,6 +2148,11 @@ void RenderDevice::SetupVideoTexture_YUV420(int32 width, int32 height, uint8 *yP
 void RenderDevice::SetupVideoTexture_YUV422(int32 width, int32 height, uint8 *yPlane, uint8 *uPlane, uint8 *vPlane, int32 strideY, int32 strideU,
                                             int32 strideV)
 {
+#if RETRO_USE_PLUS
+    // (Plus) Keep the image/video quad on this picture (see FitImageQuad()).
+    if (SetImageQuadSize(width, height))
+        WriteVertexBuffer();
+#endif
     D3D11_MAPPED_SUBRESOURCE mappedResource;
     if (SUCCEEDED(dx11Context->Map(imageTexture, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource))) {
         DWORD *pixels = (DWORD *)mappedResource.pData;
@@ -2176,6 +2200,11 @@ void RenderDevice::SetupVideoTexture_YUV422(int32 width, int32 height, uint8 *yP
 void RenderDevice::SetupVideoTexture_YUV444(int32 width, int32 height, uint8 *yPlane, uint8 *uPlane, uint8 *vPlane, int32 strideY, int32 strideU,
                                             int32 strideV)
 {
+#if RETRO_USE_PLUS
+    // (Plus) Keep the image/video quad on this picture (see FitImageQuad()).
+    if (SetImageQuadSize(width, height))
+        WriteVertexBuffer();
+#endif
     D3D11_MAPPED_SUBRESOURCE mappedResource;
     if (SUCCEEDED(dx11Context->Map(imageTexture, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource))) {
         DWORD *pixels = (DWORD *)mappedResource.pData;

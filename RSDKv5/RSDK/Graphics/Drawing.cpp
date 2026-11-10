@@ -129,6 +129,39 @@ const RenderVertex rsdkVertexBuffer[24] =
 #endif
 // clang-format on
 
+#if RETRO_USE_PLUS
+namespace
+{
+/** (Plus) Size of the picture last put in the image/video texture (see SetImageQuadSize()). */
+int32 imageQuadWidth  = RETRO_VIDEO_TEXTURE_W;
+int32 imageQuadHeight = RETRO_VIDEO_TEXTURE_H;
+} // namespace
+
+bool32 RSDK::SetImageQuadSize(int32 width, int32 height)
+{
+    if (width <= 0 || height <= 0)
+        return false;
+    width  = width < RETRO_VIDEO_TEXTURE_W ? width : RETRO_VIDEO_TEXTURE_W;
+    height = height < RETRO_VIDEO_TEXTURE_H ? height : RETRO_VIDEO_TEXTURE_H;
+    if (width == imageQuadWidth && height == imageQuadHeight)
+        return false;
+    imageQuadWidth  = width;
+    imageQuadHeight = height;
+    return true;
+}
+
+void RSDK::FitImageQuad(RenderVertex *vertices, int32 vertexCount)
+{
+    const float u = (float)imageQuadWidth / (float)RETRO_VIDEO_TEXTURE_W;
+    const float v = (float)imageQuadHeight / (float)RETRO_VIDEO_TEXTURE_H;
+    // The quad's corners use 0 or 1 for each coordinate (see the buffers above).
+    for (int32 i = vertexCount - 6; i < vertexCount; ++i) {
+        vertices[i].tex.x = vertices[i].tex.x != 0.0f ? u : 0.0f;
+        vertices[i].tex.y = vertices[i].tex.y != 0.0f ? v : 0.0f;
+    }
+}
+#endif
+
 #if RETRO_PLATFORM == RETRO_LINUX && !RETRO_USE_ORIGINAL_CODE
 // (Plus) The window's icon, set by the SDL2 and GLFW render devices.
 #include "WindowIcon.hpp"

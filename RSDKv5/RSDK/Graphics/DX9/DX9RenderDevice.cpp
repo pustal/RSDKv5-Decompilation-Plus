@@ -473,6 +473,10 @@ void RenderDevice::InitVertexBuffer()
         if (vertex->tex.y)
             vertex->tex.y = screens[0].size.y * (1.0 / textureSize.y);
     }
+#if RETRO_USE_PLUS
+    // (Plus) The image/video quad covers the picture's part of its texture.
+    FitImageQuad(vertBuffer, vertCount + 6);
+#endif
 
     RenderVertex *vertBufferPtr;
     if (SUCCEEDED(dx9VertexBuffer->Lock(0, 0, (void **)&vertBufferPtr, 0))) {
@@ -1597,6 +1601,11 @@ LRESULT CALLBACK RenderDevice::WindowEventCallback(HWND hRecipient, UINT message
 
 void RenderDevice::SetupImageTexture(int32 width, int32 height, uint8 *imagePixels)
 {
+#if RETRO_USE_PLUS
+    // (Plus) Keep the image/video quad on this picture (see FitImageQuad()).
+    if (SetImageQuadSize(width, height))
+        InitVertexBuffer();
+#endif
     if (!imagePixels)
         return;
 
@@ -1623,6 +1632,11 @@ void RenderDevice::SetupImageTexture(int32 width, int32 height, uint8 *imagePixe
 void RenderDevice::SetupVideoTexture_YUV420(int32 width, int32 height, uint8 *yPlane, uint8 *uPlane, uint8 *vPlane, int32 strideY, int32 strideU,
                                             int32 strideV)
 {
+#if RETRO_USE_PLUS
+    // (Plus) Keep the image/video quad on this picture (see FitImageQuad()).
+    if (SetImageQuadSize(width, height))
+        InitVertexBuffer();
+#endif
     dx9Device->SetTexture(0, NULL);
 
     D3DLOCKED_RECT rect;
@@ -1672,6 +1686,11 @@ void RenderDevice::SetupVideoTexture_YUV420(int32 width, int32 height, uint8 *yP
 void RenderDevice::SetupVideoTexture_YUV422(int32 width, int32 height, uint8 *yPlane, uint8 *uPlane, uint8 *vPlane, int32 strideY, int32 strideU,
                                             int32 strideV)
 {
+#if RETRO_USE_PLUS
+    // (Plus) Keep the image/video quad on this picture (see FitImageQuad()).
+    if (SetImageQuadSize(width, height))
+        InitVertexBuffer();
+#endif
     dx9Device->SetTexture(0, NULL);
 
     D3DLOCKED_RECT rect;
@@ -1721,6 +1740,11 @@ void RenderDevice::SetupVideoTexture_YUV422(int32 width, int32 height, uint8 *yP
 void RenderDevice::SetupVideoTexture_YUV444(int32 width, int32 height, uint8 *yPlane, uint8 *uPlane, uint8 *vPlane, int32 strideY, int32 strideU,
                                             int32 strideV)
 {
+#if RETRO_USE_PLUS
+    // (Plus) Keep the image/video quad on this picture (see FitImageQuad()).
+    if (SetImageQuadSize(width, height))
+        InitVertexBuffer();
+#endif
     dx9Device->SetTexture(0, NULL);
 
     D3DLOCKED_RECT rect;

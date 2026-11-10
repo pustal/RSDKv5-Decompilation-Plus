@@ -242,6 +242,29 @@ private:
     static void GetDisplays();
 };
 
+#if RETRO_USE_PLUS
+/**
+ * (Plus) Records the size of the picture last put in the image/video texture
+ * (RETRO_VIDEO_TEXTURE_W x RETRO_VIDEO_TEXTURE_H). The DirectX, OpenGL and
+ * Vulkan render devices copy a picture into that texture's top-left corner and
+ * draw it with the image/video quad (the vertex buffer's last 6 vertices);
+ * FitImageQuad() keeps that quad on the picture, so a video smaller than the
+ * texture (a Sonic Origins video converted by an earlier build) still fills
+ * the game area.
+ *
+ * @return True when the size changed: the render device then rewrites its
+ *         vertex buffer.
+ */
+bool32 SetImageQuadSize(int32 width, int32 height);
+
+/**
+ * (Plus) Scales the texture coordinates of the image/video quad, the last 6 of
+ * @p vertexCount vertices, to the picture's part of the texture
+ * (SetImageQuadSize()).
+ */
+void FitImageQuad(RenderVertex *vertices, int32 vertexCount);
+#endif
+
 #if RETRO_RENDERDEVICE_DIRECTX9
 #include "DX9/DX9RenderDevice.hpp"
 #elif RETRO_RENDERDEVICE_DIRECTX11

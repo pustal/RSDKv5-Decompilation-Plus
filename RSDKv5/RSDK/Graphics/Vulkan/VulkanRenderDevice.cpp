@@ -1289,7 +1289,7 @@ const RenderVertex rsdkVKVertexBuffer[24] =
 VkVertexInputBindingDescription bindingDescription;
 VkVertexInputAttributeDescription attributeDescriptions[3];
 
-bool RenderDevice::InitVertexBuffer()
+void RenderDevice::WriteVertexBuffer()
 {
     RenderVertex vertBuffer[sizeof(rsdkVKVertexBuffer) / sizeof(RenderVertex)];
     memcpy(vertBuffer, rsdkVKVertexBuffer, sizeof(rsdkVKVertexBuffer));
@@ -1310,18 +1310,27 @@ bool RenderDevice::InitVertexBuffer()
         if (vertex->tex.y)
             vertex->tex.y = screens[0].size.y * (1.0 / textureSize.y);
     }
-
-    //! CONFIGURE MEMORY
-    if (!CreateBuffer(sizeof(vertBuffer), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory)) {
-        PrintLog(PRINT_NORMAL, "[VK] Failed to create vertex buffer");
-        return false;
-    }
+#if RETRO_USE_PLUS
+    // (Plus) The image/video quad covers the picture's part of its texture.
+    FitImageQuad(vertBuffer, vertCount + 6);
+#endif
 
     void *data;
     vkMapMemory(device, vertexBufferMemory, 0, sizeof(vertBuffer), 0, &data);
     memcpy(data, vertBuffer, sizeof(vertBuffer));
     vkUnmapMemory(device, vertexBufferMemory);
+}
+
+bool RenderDevice::InitVertexBuffer()
+{
+    //! CONFIGURE MEMORY
+    if (!CreateBuffer(sizeof(rsdkVKVertexBuffer), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory)) {
+        PrintLog(PRINT_NORMAL, "[VK] Failed to create vertex buffer");
+        return false;
+    }
+
+    WriteVertexBuffer();
 
     // remember to bind it later!
 
@@ -2045,6 +2054,11 @@ void RenderDevice::GetWindowSize(int32 *width, int32 *height)
 
 void RenderDevice::SetupImageTexture(int32 width, int32 height, uint8 *imagePixels)
 {
+#if RETRO_USE_PLUS
+    // (Plus) Keep the image/video quad on this picture (see FitImageQuad()).
+    if (SetImageQuadSize(width, height))
+        WriteVertexBuffer();
+#endif
     uint32 *pixels = (uint32 *)imageTexture.map;
     int32 pitch    = (imageTexture.layout.rowPitch >> 2) - width;
 
@@ -2061,6 +2075,11 @@ void RenderDevice::SetupImageTexture(int32 width, int32 height, uint8 *imagePixe
 void RenderDevice::SetupVideoTexture_YUV420(int32 width, int32 height, uint8 *yPlane, uint8 *uPlane, uint8 *vPlane, int32 strideY, int32 strideU,
                                             int32 strideV)
 {
+#if RETRO_USE_PLUS
+    // (Plus) Keep the image/video quad on this picture (see FitImageQuad()).
+    if (SetImageQuadSize(width, height))
+        WriteVertexBuffer();
+#endif
     uint32 *pixels = (uint32 *)imageTexture.map;
     int32 pitch    = (imageTexture.layout.rowPitch >> 2) - width;
 
@@ -2103,6 +2122,11 @@ void RenderDevice::SetupVideoTexture_YUV420(int32 width, int32 height, uint8 *yP
 void RenderDevice::SetupVideoTexture_YUV422(int32 width, int32 height, uint8 *yPlane, uint8 *uPlane, uint8 *vPlane, int32 strideY, int32 strideU,
                                             int32 strideV)
 {
+#if RETRO_USE_PLUS
+    // (Plus) Keep the image/video quad on this picture (see FitImageQuad()).
+    if (SetImageQuadSize(width, height))
+        WriteVertexBuffer();
+#endif
     uint32 *pixels = (uint32 *)imageTexture.map;
     int32 pitch    = (imageTexture.layout.rowPitch >> 2) - width;
 
@@ -2144,6 +2168,11 @@ void RenderDevice::SetupVideoTexture_YUV422(int32 width, int32 height, uint8 *yP
 void RenderDevice::SetupVideoTexture_YUV444(int32 width, int32 height, uint8 *yPlane, uint8 *uPlane, uint8 *vPlane, int32 strideY, int32 strideU,
                                             int32 strideV)
 {
+#if RETRO_USE_PLUS
+    // (Plus) Keep the image/video quad on this picture (see FitImageQuad()).
+    if (SetImageQuadSize(width, height))
+        WriteVertexBuffer();
+#endif
     uint32 *pixels = (uint32 *)imageTexture.map;
     int32 pitch    = (imageTexture.layout.rowPitch >> 2) - width;
 

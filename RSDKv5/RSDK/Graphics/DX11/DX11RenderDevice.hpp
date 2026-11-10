@@ -96,6 +96,8 @@ public:
 private:
     static bool SetupRendering();
     static void InitVertexBuffer();
+    /** Fills the vertex buffer (also when the image/video quad changes, see FitImageQuad()). */
+    static void WriteVertexBuffer();
     static bool InitGraphicsAPI();
     static bool LoadBackupShader();
 
