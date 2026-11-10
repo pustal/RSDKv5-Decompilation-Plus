@@ -230,6 +230,29 @@ void RSDK::UnloadDataPacks()
     dataFileListCount = 0;
     useDataPack       = false;
 }
+
+int32 RSDK::RetireDataPack(const char *fileName)
+{
+    const size_t nameLength = strlen(fileName);
+    int32 retired           = 0;
+    for (int32 p = 0; p < dataPackCount; ++p) {
+        const char *packPath    = dataPacks[p].name;
+        const size_t pathLength = strlen(packPath);
+        if (!nameLength || pathLength < nameLength || strcmp(packPath + pathLength - nameLength, fileName) != 0)
+            continue;
+        // A zero hash matches no path: the entry is never found again.
+        for (int32 f = 0; f < dataFileListCount; ++f) {
+            RSDKFileInfo *file = &dataFileList[f];
+            if (file->packID != p)
+                continue;
+            bool32 used = false; // Unused rows (a converted pack's spare ones) are zero already.
+            for (int32 h = 0; h < 4; ++h) used |= file->hash[h] != 0;
+            memset(file->hash, 0, sizeof(file->hash));
+            retired += used ? 1 : 0;
+        }
+    }
+    return retired;
+}
 #endif
 
 bool32 RSDK::LoadAudioDataPack(const char *filePath, bool32 lendAudio)

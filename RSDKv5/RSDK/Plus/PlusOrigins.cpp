@@ -39,6 +39,7 @@
 #include <functional>
 #include <map>
 #include <mutex>
+#include <chrono>
 #include <thread>
 
 namespace RSDK
@@ -656,6 +657,8 @@ struct OriginsAudioJob {
     std::atomic<bool> cancel{ false };
     std::atomic<int32> percent{ 0 };
     std::atomic<bool> finished{ false }; ///< Done since the engine last looked (OriginsAudioFinished()).
+    /// The engine stopped reading the pack being replaced (Plus::Update(), RetireDataPack()).
+    std::atomic<bool> packsReleased{ false };
     std::string message;                 ///< Under lock.
 };
 
@@ -666,6 +669,17 @@ void SetOriginsMessage(const std::string &text)
     std::lock_guard<std::mutex> guard(originsJob.lock);
     originsJob.message = text;
     PrintLog(PRINT_NORMAL, "[Plus] Sonic Origins audio: %s", text.c_str());
+}
+
+/**
+ * Waits (on a conversion thread) until the engine has stopped reading the
+ * running game's pack that @p job will replace (Plus::Update() retires it on
+ * its next frame), so no file is rewritten under a running game. Gives up
+ * after a few seconds (an engine not updating reads nothing either).
+ */
+void WaitForPacksReleased(const OriginsAudioJob &job)
+{
+    for (int32 waited = 0; waited < 300 && !job.packsReleased && !job.cancel; ++waited) std::this_thread::sleep_for(std::chrono::milliseconds(10));
 }
 
 /** The retro folders: the user folder's, then those added with AddPackFolder(). */
@@ -789,9 +803,10 @@ bool ConvertOriginsGame(const OriginsGame &game, uint64 *done, uint64 total, int
         return false;
     }
 
-    // Written under a temporary name, then renamed over the old pack, which a
-    // running game may be reading. Android's picked folder cannot rename: the
-    // pack is written in place there. Either way its signature is written
+    // Written under a temporary name, then renamed over the old pack (the
+    // running game stopped reading it when the conversion started: see
+    // RetireDataPack() in Plus::Update()). Android's picked folder cannot
+    // rename: the pack is written in place there. Either way its signature is written
     // last, so an interrupted pack is never taken for a pack.
     const std::string finalPath = outputFolder + OriginsAudioPackName(game.id);
 #if RETRO_PLATFORM == RETRO_ANDROID
@@ -896,6 +911,7 @@ bool WriteOriginsPack(const std::string &path, const OriginsGame &game, std::vec
 /** The conversion thread's work. */
 void RunOriginsConversion()
 {
+    WaitForPacksReleased(originsJob);
     // The bytes to read, for the progress (sound files are counted whole).
     uint64 total = 0;
     bool any     = false;
@@ -955,6 +971,7 @@ bool StartOriginsConversion()
     originsJob.cancel   = false;
     originsJob.finished = false;
     originsJob.percent  = 0;
+    originsJob.packsReleased = false;
     originsJob.running  = true;
     SetOriginsMessage("Starting...");
     originsJob.worker = std::thread(RunOriginsConversion);

@@ -114,6 +114,14 @@ bool32 LoadAudioDataPack(const char *filePath, bool32 lendAudio = true);
 // (Plus) Forgets every data pack (and frees those held in memory), so another
 // game's packs can be loaded in their place (RSDK::Plus game switching).
 void UnloadDataPacks();
+
+// (Plus) Stops serving the files of the loaded pack whose path ends with
+// @p fileName, as if it had none: a converter is about to replace that pack
+// file, and the file table read at load would point into the new file at the
+// old pack's offsets. Files already open keep reading. The pack comes back
+// when the game's packs are loaded again (the restart after the conversion).
+// @return The number of files it served.
+int32 RetireDataPack(const char *fileName);
 #endif
 
 // (Plus) Where a pack file would come from: DATAFILE_SOURCE_NONE,
@@ -205,7 +213,16 @@ inline size_t ReadBytes(FileInfo *info, void *data, int32 count)
         info->fileBuffer += bytesRead;
     }
     else {
-        bytesRead = fRead(data, 1, count, info->file);
+#if !RETRO_USE_ORIGINAL_CODE
+        // (Plus) A file in a pack (fileOffset past the pack's header) is read no
+        // further than its end: the pack's next file follows it. The video
+        // player reads until nothing comes back, and played the next videos of
+        // a converted Sonic Origins pack after the one asked for (each made by
+        // the same writer, so their Ogg pages fitted the first one's stream).
+        if (info->fileOffset > 0 && count > info->fileSize - info->readPos)
+            count = info->fileSize - info->readPos > 0 ? info->fileSize - info->readPos : 0;
+#endif
+        bytesRead = count > 0 ? fRead(data, 1, count, info->file) : 0;
     }
 
     if (info->encrypted)

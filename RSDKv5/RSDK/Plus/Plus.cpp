@@ -60,6 +60,10 @@ struct PlusState {
     std::vector<AchievementInfo> maniaAchievements; ///< Sonic Mania's list, kept while a retro game runs.
     bool maniaAchievementsKept = false;
     char otherUserFileDir[0x100] = {}; ///< The mod loader's save folder, while a retro game's is in use.
+    // A conversion rewriting a pack the running game loaded: the game stopped
+    // reading that pack (RetireDataPack()) until its packs load again.
+    bool audioPackRetired = false;
+    bool videoPackRetired = false;
 
     std::string notice;     ///< Shown over the game.
     int32 noticeFrames = 0; ///< Frames it still shows.
@@ -302,6 +306,8 @@ void EnsureSaveFolder()
 bool LoadGamePacks(const std::string &id)
 {
     UnloadDataPacks();
+    plus.audioPackRetired = false; // The packs load anew (see Update()).
+    plus.videoPackRetired = false;
     if (!IsRetroGame(id)) {
         engine.gameReleaseID = plus.maniaReleaseID;
         return LoadDataPack(plus.maniaDataFile.c_str(), 0, plus.useBuffer);
@@ -475,6 +481,20 @@ void RSDK::Plus::ApplyPendingSwitch()
     SaveConfig();
 }
 
+namespace RSDK
+{
+namespace Plus
+{
+/** Stops reading the loaded pack @p fileName (RetireDataPack()), and says so in the log if it was loaded. */
+void LogRetiredPack(const std::string &fileName)
+{
+    const int32 files = RetireDataPack(fileName.c_str());
+    if (files)
+        PrintLog(PRINT_NORMAL, "[Plus] Not reading %s while it is converted again (%d files)", fileName.c_str(), files);
+}
+} // namespace Plus
+} // namespace RSDK
+
 void RSDK::Plus::Update()
 {
     if (plus.noticeFrames > 0)
@@ -487,14 +507,32 @@ void RSDK::Plus::Update()
         OpenMenu();
     ++plusFrame;
 
+    // A Sonic Origins conversion is running: it replaces the running game's
+    // converted pack when it gets to that game, and the file table read when
+    // the pack loaded would then point into the new file at the old offsets
+    // (a wrong video or sound, or none). So the game stops reading that pack
+    // now, as if it had none, until the restart below.
+    if (originsJob.running) {
+        if (!plus.audioPackRetired)
+            LogRetiredPack(OriginsAudioPackName(plus.current.c_str()));
+        plus.audioPackRetired    = true;
+        originsJob.packsReleased = true; // The conversion thread may write now.
+    }
+    if (videoJob.running) {
+        if (!plus.videoPackRetired)
+            LogRetiredPack(OriginsVideoPackName(plus.current.c_str()));
+        plus.videoPackRetired  = true;
+        videoJob.packsReleased = true;
+    }
+
     // A Sonic Origins audio conversion has finished: the packs are found
-    // again, and a running retro game restarts with its new pack (the file
-    // table it read at startup is the old pack's).
+    // again, and a running retro game restarts with its new pack (or, if it
+    // got none, with the pack it stopped reading).
     if (originsJob.finished.exchange(false)) {
         plus.games            = ScanRetroGames();
         const RetroGame *game = FindRetroGame(plus.current);
         Notify(OriginsMessage());
-        if (game && game->HasOriginsAudio())
+        if (game && (game->HasOriginsAudio() || plus.audioPackRetired))
             RequestSwitch(plus.current);
     }
     // The same for the videos (PlusVideo.cpp).
@@ -502,7 +540,7 @@ void RSDK::Plus::Update()
         plus.games            = ScanRetroGames();
         const RetroGame *game = FindRetroGame(plus.current);
         Notify(VideoMessage());
-        if (game && game->originsVideo.state == PACK_READY)
+        if (game && (game->originsVideo.state == PACK_READY || plus.videoPackRetired))
             RequestSwitch(plus.current);
     }
 

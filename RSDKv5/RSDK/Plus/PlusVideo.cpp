@@ -118,6 +118,12 @@ bool PlayCutscene(const char *name)
     if (FindDataFileSource(("Data/Video/" + file).c_str()) == DATAFILE_SOURCE_NONE)
         return false;
     PrintLog(PRINT_NORMAL, "[Plus] Cutscene %s", name);
+    // The stage load sets the idle-dimming limit after this hook runs: at the
+    // first load (the logo at startup) it is still 0, and the screen would dim
+    // at once (RenderDevice::ProcessDimming()). The video starts undimmed.
+    videoSettings.dimLimit   = (5 * 60) * videoSettings.refreshRate;
+    videoSettings.dimTimer   = 0;
+    videoSettings.dimPercent = 1.0f;
     return LoadVideo(file.c_str(), 0.0, CutsceneSkip);
 }
 
@@ -633,6 +639,9 @@ bool ConvertVideoGame(const OriginsVideoGame &game, uint64 *done, uint64 total, 
         return false;
     }
 
+    // As the audio packs (PlusOrigins.cpp): under a temporary name, then renamed
+    // over the old pack, which the running game stopped reading
+    // (RetireDataPack()); in place on Android.
     const std::string finalPath = outputFolder + OriginsVideoPackName(game.id);
 #if RETRO_PLATFORM == RETRO_ANDROID
     const std::string path = finalPath;
@@ -732,6 +741,7 @@ bool ConvertVideoGame(const OriginsVideoGame &game, uint64 *done, uint64 total, 
 /** The conversion thread's work. */
 void RunVideoConversion()
 {
+    WaitForPacksReleased(videoJob);
     // The frames to decode, for the progress (the logo counts once per game).
     uint64 total = 0;
     for (const OriginsVideoGame &game : OriginsVideoGames()) {
@@ -795,6 +805,7 @@ bool StartVideoConversion()
     videoJob.cancel   = false;
     videoJob.finished = false;
     videoJob.percent  = 0;
+    videoJob.packsReleased = false;
     videoJob.running  = true;
     SetVideoMessage("Starting...");
     videoJob.worker = std::thread(RunVideoConversion);
