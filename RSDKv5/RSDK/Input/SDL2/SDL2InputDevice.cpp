@@ -207,9 +207,12 @@ RSDK::SKU::InputDeviceSDL *RSDK::SKU::InitSDL2InputDevice(uint32 id, SDL_GameCon
     if (name != NULL) {
         if (strstr(name, "Xbox"))
             controllerType = DEVICE_XBOX;
-        else if (strstr(name, "Playstation") || strstr(name, "PS3") || strstr(name, "PS4") || strstr(name, "PS5"))
+        else if (strstr(name, "Playstation") || strstr(name, "PS3") || strstr(name, "PS4") || strstr(name, "PS5") || strstr(name, "Vita"))
             controllerType = DEVICE_PS4;
-        else if (strstr(name, "Switch") || strstr(name, "Wii U")) {
+        // (Plus) The Wii U's controllers have Nintendo's button layout too
+        // (wiiu-sdl2 names them "Wii U Gamepad", "Wii U Pro Controller",
+        // "Wii Remote" and "Wii Classic Controller").
+        else if (strstr(name, "Switch") || strstr(name, "Wii U") || strstr(name, "Wii Remote") || strstr(name, "Wii Classic")) {
             controllerType   = DEVICE_SWITCH_PRO;
             device->swapABXY = true;
         }

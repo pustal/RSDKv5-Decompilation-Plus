@@ -128,6 +128,9 @@ struct VideoSettings {
     float viewportH;
     float viewportX;
     float viewportY;
+#if RETRO_PLATFORM == RETRO_WII
+    bool runIn240p;
+#endif
 };
 
 enum VideoSettingsValues {
@@ -277,6 +280,8 @@ void FitImageQuad(RenderVertex *vertices, int32 vertexCount);
 #include "Vulkan/VulkanRenderDevice.hpp"
 #elif RETRO_RENDERDEVICE_EGL
 #include "EGL/EGLRenderDevice.hpp"
+#elif RETRO_RENDERDEVICE_GX
+#include "GX/GXRenderDevice.hpp"
 #endif
 
 extern DrawList drawGroups[DRAWGROUP_COUNT];

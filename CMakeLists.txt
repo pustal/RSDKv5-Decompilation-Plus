@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(RetroEngine)
 
-set(DECOMP_VERSION 1.5.0)
+set(DECOMP_VERSION 1.6.0)
 
 set(RETRO_REVISION 3 CACHE STRING "What revision to compile for. Defaults to v5U = 3")
 option(RETRO_DISABLE_PLUS "Forces the Plus DLC off. Without it the DLC is still off by default: the player turns it on (Settings.ini Game:plusDLC, or the Plus menu)." OFF)

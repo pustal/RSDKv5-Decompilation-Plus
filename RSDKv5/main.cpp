@@ -1,6 +1,12 @@
 #include "RSDK/Core/RetroEngine.hpp"
 #include "main.hpp"
 
+#if RETRO_PLATFORM == RETRO_VITA
+// (Plus) The heap newlib gives the app: the Vita's default is far too small for
+// the game's storage and the packs' file tables (after SonicMastr's port).
+int _newlib_heap_size_user = 300 * 1024 * 1024;
+#endif
+
 #if RETRO_STANDALONE
 #define LinkGameLogic RSDK::LinkGameLogic
 #else

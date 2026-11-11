@@ -397,7 +397,7 @@ void LinkGameLogic(EngineInfo info);
 // ORIGINAL CLASS
 
 // Windows.h already included by master header
-#if !(RETRO_PLATFORM == RETRO_WIN || RETRO_PLATFORM == RETRO_SWITCH)
+#if !(RETRO_PLATFORM == RETRO_WIN || RETRO_PLATFORM == RETRO_SWITCH || RETRO_PLATFORM == RETRO_WII || RETRO_PLATFORM == RETRO_WIIU || RETRO_PLATFORM == RETRO_VITA)
 #include <dlfcn.h>
 #endif
 
@@ -442,6 +442,10 @@ public:
 #endif
 #endif
 
+#if RETRO_PLATFORM == RETRO_WII || RETRO_PLATFORM == RETRO_WIIU || RETRO_PLATFORM == RETRO_VITA
+    // do nothing for the Wii, the Wii U and the Vita (the game is linked in)
+    static inline Handle Open(std::string path) { return NULL; }
+#else
     static inline Handle PlatformLoadLibrary(std::string path)
     {
         Handle ret;
@@ -510,19 +514,27 @@ public:
 #endif // ! RETRO_ARCHITECTURE
         return ret;
     }
+#endif // ! RETRO_PLATFORM == RETRO_WII || RETRO_WIIU || RETRO_VITA
 
     static inline void Close(Handle handle)
     {
+#if RETRO_PLATFORM == RETRO_WII || RETRO_PLATFORM == RETRO_WIIU || RETRO_PLATFORM == RETRO_VITA
+        return;
+#else
         if (handle)
 #if RETRO_PLATFORM == RETRO_WIN
             FreeLibrary(handle);
 #else
             dlclose(handle);
 #endif
+#endif // ! RETRO_PLATFORM == RETRO_WII || RETRO_WIIU || RETRO_VITA
     }
 
     static inline void *GetSymbol(Handle handle, const char *symbol)
     {
+#if RETRO_PLATFORM == RETRO_WII || RETRO_PLATFORM == RETRO_WIIU || RETRO_PLATFORM == RETRO_VITA
+        return NULL;
+#else
         if (!handle)
             return NULL;
 #if RETRO_PLATFORM == RETRO_WIN
@@ -530,15 +542,20 @@ public:
 #else
         return (void *)dlsym(handle, symbol);
 #endif
+#endif // ! RETRO_PLATFORM == RETRO_WII || RETRO_WIIU || RETRO_VITA
     }
 
     static inline char *GetError()
     {
+#if RETRO_PLATFORM == RETRO_WII || RETRO_PLATFORM == RETRO_WIIU || RETRO_PLATFORM == RETRO_VITA
+        return NULL;
+#else
 #if RETRO_PLATFORM == RETRO_WIN
         return (char *)GetLastErrorAsString();
 #else
         return dlerror();
 #endif
+#endif // ! RETRO_PLATFORM == RETRO_WII || RETRO_WIIU || RETRO_VITA
     }
 
 private:

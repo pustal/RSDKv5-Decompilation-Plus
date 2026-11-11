@@ -331,7 +331,11 @@ void RSDK::LoadSettingsINI()
         customSettings.region = iniparser_getint(ini, "Game:region", -1);
         // customSettings.confirmButtonFlip        = iniparser_getboolean(ini, "Game:confirmButtonFlip", false);
         // customSettings.xyButtonFlip             = iniparser_getboolean(ini, "Game:xyButtonFlip", false);
-        customSettings.confirmButtonFlip         = iniparser_getboolean(ini, "Game:faceButtonFlip", false);
+#if RETRO_PLATFORM == RETRO_WII
+        customSettings.confirmButtonFlip = true;
+#else
+        customSettings.confirmButtonFlip = iniparser_getboolean(ini, "Game:faceButtonFlip", false);
+#endif
         customSettings.xyButtonFlip              = customSettings.confirmButtonFlip;
         customSettings.enableControllerDebugging = iniparser_getboolean(ini, "Game:enableControllerDebugging", false);
         customSettings.disableFocusPause         = iniparser_getboolean(ini, "Game:disableFocusPause", false);
@@ -384,7 +388,11 @@ void RSDK::LoadSettingsINI()
         videoSettings.shaderID      = iniparser_getint(ini, "Video:screenShader", SHADER_NONE);
 
 #if !RETRO_USE_ORIGINAL_CODE
-        customSettings.maxPixWidth = iniparser_getint(ini, "Video:maxPixWidth", DEFAULT_PIXWIDTH);
+        customSettings.maxPixWidth  = iniparser_getint(ini, "Video:maxPixWidth", DEFAULT_PIXWIDTH);
+#endif
+
+#if RETRO_PLATFORM == RETRO_WII
+        videoSettings.runIn240p     = iniparser_getboolean(ini, "Video:runIn240p", false);
 #endif
 
         engine.streamsEnabled = iniparser_getboolean(ini, "Audio:streamsEnabled", true);
@@ -532,7 +540,14 @@ void RSDK::LoadSettingsINI()
 #if !RETRO_USE_ORIGINAL_CODE
         engine.plusDLC = false; // (Plus) Off by default (see PlusDLCEnabled()).
         customSettings.region                    = -1;
+#if RETRO_PLATFORM == RETRO_WII
+        customSettings.confirmButtonFlip         = true;
+
+        //default to not running in 240p on Wii
+        videoSettings.runIn240p                  = false;
+#else
         customSettings.confirmButtonFlip         = false;
+#endif
         customSettings.xyButtonFlip              = false;
         customSettings.enableControllerDebugging = false;
         customSettings.disableFocusPause         = false;
@@ -629,7 +644,9 @@ void RSDK::SaveSettingsINI(bool32 writeToFile)
             return;
         }
 #endif
-
+#if RETRO_PLATFORM == RETRO_WII
+	WriteText(file, "faceButtonFlip=%s\n", (customSettings.confirmButtonFlip ? "y" : "n"));
+#endif
         // ================
         // SIGNATURE
         // ================
@@ -727,6 +744,9 @@ void RSDK::SaveSettingsINI(bool32 writeToFile)
 #if !RETRO_USE_ORIGINAL_CODE
         WriteText(file, "; Maximum width the screen will be allowed to be. A value of 0 will disable the maximum width\n");
         WriteText(file, "maxPixWidth=%d\n", customSettings.maxPixWidth);
+#endif
+#if RETRO_PLATFORM == RETRO_WII
+        WriteText(file, "runIn240p=%s\n", (videoSettings.runIn240p ? "y" : "n"));
 #endif
 
         // ================

@@ -41,13 +41,16 @@ This fork (RSDKv5-Decompilation-Plus) adds, on top of the decompilation, a way t
 * **Sonic Mania's audio.** The Origins packs have no music or sounds, and even with the earlier releases' packs the sounds Origins added (the Drop Dash, Knuckles' and Amy's moves) are missing. Sonic Mania's pack fills those gaps: the same sound effects (or the nearest ones) and the zones Mania remixed (Green Hill, Chemical Plant, Oil Ocean, Stardust Speedway, Metallic Madness and the jingles), with Mania's loop points (Green Hill, Chemical Plant and Oil Ocean play Mania's act 1 remix in act 1 and its act 2 remix from act 2 on). The game's own packs (and Sonic Origins' converted audio) win, with two optional settings:
   * **Similar Mania music** gives the other zones a Mania track of similar feel (Emerald Hill plays Green Hill, Casino Night plays Studiopolis...);
   * **Sonic Mania remixes** plays the remixed zones' Mania version even when the earlier release's pack has the original.
+* **Wii.** Mefiresu's [Wii port](https://github.com/Mefiresu/RSDKv5-Decompilation/tree/dev/wii-port) (GX graphics, AESND sound, Wii Remote, Nunchuk, Classic Controller and GameCube controller input, with camthehaxman's multiplayer and cherryduck's 240p work) is part of this fork, with the Plus module: the **Minus** button opens the Plus menu. Put `Data.rsdk` in `sd:/RSDKv5/` and the retro packs in `sd:/RSDKv5/retro/`; the app goes in `sd:/apps/SonicManiaPlus/` (`boot.dol`, with `meta.xml` and `icon.png` from `platforms/wii/`). The Homebrew Channel argument `path=/OtherFolder/` reads the data from another folder. The Wii does not play videos yet (the port has no video playback), so Sonic CD's and Sonic Origins' cutscenes are skipped and there is no video converter; Sonic Origins' audio converts and plays. Settings.ini's `runIn240p=y` (under `[Video]`) outputs 240p.
+* **Wii U.** Built with wut and its SDL2 port, after [Clownacy's](https://github.com/Clownacy/Sonic-Mania-Decompilation-Wii-U) and [Radfordhound's](https://github.com/Radfordhound/RSDKv5-Decompilation) Wii U ports: the GamePad, Pro Controller, Wii Remotes and Classic Controllers, on the TV and the GamePad. **Minus** opens the Plus menu. Install `RSDKv5U.wuhb` in `sd:/wiiu/apps/` (Aroma); the data goes in `sd:/RSDKv5/`, the retro packs in `sd:/RSDKv5/retro/`. Videos play; there is no video converter (packs converted elsewhere play).
+* **PlayStation Vita.** Built with VitaSDK and its SDL2 port, after [SonicMastr's Vita port](https://github.com/SonicMastr/Sonic-Mania-Vita). **Select** opens the Plus menu; the rear touchpad is off. Install `RSDKv5U.vpk` with VitaShell; the data goes in `ux0:data/RSDKv5/`, the retro packs in `ux0:data/RSDKv5/retro/`. Videos play; there is no video converter.
 * **Touch controls (Android).** A small **PAD** button at the top right shows or hides a pad, A, B, START and MENU (the Plus menu) over the game; it shows when the app opens and when pressed, then fades out but keeps working. Their opacity (100% to 0%, still working unseen) is in the Plus menu's Settings. Build with `-DPLUS_TOUCH_CONTROLS=1` to try them on another platform.
 * **Saves.** Each retro game keeps its saves and achievements in `retro/<game>/`; settings, the coin count and the touch controls' state in `Plus.ini`.
 * **Fixes in the legacy cores:** scripts that read buttons without naming a controller (Sonic CD 2011's menus) now get the player's input; Sonic 1 and 2's 2013 packs (RSDKvB) open, and their Ogg sound effects play.
 
 The code is in `RSDKv5/RSDK/Plus/` (one translation unit, included by `RetroEngine.cpp`); the engine calls it from places marked `(Plus)`.
 
-**Icons.** Every platform's app icon (macOS, Windows, Android, the Switch, and the window's icon on Linux) is the R of the RSDK logo with the green PLUS, drawn from `header.png` by `tools/make-icons.py` (Pillow and NumPy), which writes them all again if the header changes.
+**Icons.** Every platform's app icon (macOS, Windows, Android, the Switch, the Wii's Homebrew Channel, the Wii U's and the Vita's, and the window's icon on Linux) is the R of the RSDK logo with the green PLUS, drawn from `header.png` by `tools/make-icons.py` (Pillow and NumPy), which writes them all again if the header changes.
 
 A port that wraps the engine in its own launcher can tell the Plus module what only it knows, through the platform API at the end of `RSDKv5/RSDK/Plus/Plus.hpp`: more folders to find the retro packs in (a USB drive's, say), a line for the menu's main page and the Games page's and Settings page's hints, starting the Sonic Origins audio conversion and following it, its own main-page entries, a per-frame callback on the engine's thread, and the menu's settings to read and apply. [SonicWebMania](https://github.com/pustal/SonicWebMania), the LG webOS TV app, uses it with no other change to the engine.
 
@@ -97,6 +100,30 @@ Install the following dependencies: then follow the [compilation steps below](#c
 Finally, follow the [compilation steps below](#compiling) using `-DCMAKE_TOOLCHAIN_FILE=/opt/devkitpro/cmake/Switch.cmake` as arguments for `cmake -B build`.
 
 #### (make sure to [install GL shaders!](FAQ.md#q-why-arent-videosfilters-working-while-using-gl))
+
+### Wii
+[Setup devKitPro](https://devkitpro.org/wiki/Getting_Started), then run the following:
+- `(dkp-)pacman -Syuu wii-dev wii-cmake ppc-pkg-config`
+
+Build it from [the Sonic Mania Decompilation Plus repo](https://github.com/pustal/Sonic-Mania-Decompilation-Plus) (the Wii links the game into the engine), following the [compilation steps below](#compiling) with these arguments for `cmake -B build`:
+`-DCMAKE_TOOLCHAIN_FILE=/opt/devkitpro/cmake/Wii.cmake -DPLATFORM=NintendoWii -DGAME_STATIC=ON`
+
+The result is `build/dependencies/RSDKv5/RetroEngine.dol`: copy it to `sd:/apps/SonicManiaPlus/boot.dol` with `platforms/wii/meta.xml` and `platforms/wii/icon.png`.
+
+### Wii U
+[Setup devKitPro](https://devkitpro.org/wiki/Getting_Started), then run the following:
+- `(dkp-)pacman -Syuu wiiu-dev wiiu-cmake wiiu-sdl2 ppc-libogg ppc-libtheora`
+
+Build it from [the Sonic Mania Decompilation Plus repo](https://github.com/pustal/Sonic-Mania-Decompilation-Plus) (the game is linked into the engine) with these arguments for `cmake -B build`:
+`-DCMAKE_TOOLCHAIN_FILE=/opt/devkitpro/cmake/WiiU.cmake -DPLATFORM=NintendoWiiU -DGAME_STATIC=ON`
+
+The result is `build/dependencies/RSDKv5/RetroEngine.wuhb` (its icon and splash screens are in `platforms/wiiu/`).
+
+### PlayStation Vita
+Install [VitaSDK](https://vitasdk.org/) (it has SDL2, libogg and libtheora). Build it from [the Sonic Mania Decompilation Plus repo](https://github.com/pustal/Sonic-Mania-Decompilation-Plus) with these arguments for `cmake -B build`:
+`-DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake -DPLATFORM=PlayStationVita -DGAME_STATIC=ON`
+
+The result is `build/dependencies/RSDKv5/RSDKv5U.vpk` (its LiveArea images are in `platforms/vita/sce_sys/`).
 
 ### Android
 Follow the android build instructions [here.](./dependencies/android/README.md)

@@ -12,6 +12,17 @@
 // ================
 // STANDARD TYPES
 // ================
+#ifdef __wii__
+#include <cstdint>
+typedef int8_t int8;
+typedef uint8_t uint8;
+typedef int16_t int16;
+typedef uint16_t uint16;
+typedef int32_t int32;
+typedef uint32_t uint32;
+typedef int64_t int64;
+typedef uint64_t uint64;
+#else
 typedef signed char int8;
 typedef unsigned char uint8;
 typedef signed short int16;
@@ -20,7 +31,7 @@ typedef signed int int32;
 typedef unsigned int uint32;
 typedef signed long long int64;
 typedef unsigned long long uint64;
-
+#endif
 typedef uint32 bool32;
 typedef uint32 color;
 
@@ -91,6 +102,9 @@ enum GameRegions {
 #define RETRO_iOS     (6)
 #define RETRO_ANDROID (7)
 #define RETRO_UWP     (8)
+#define RETRO_WII     (9)
+#define RETRO_WIIU    (10) // (Plus) Wii U (wut), after Clownacy's and Radfordhound's ports
+#define RETRO_VITA    (11) // (Plus) PlayStation Vita (VitaSDK), after SonicMastr's port
 
 // ============================
 // PLATFORMS (used mostly in legacy but could come in handy here)
@@ -142,6 +156,15 @@ enum GameRegions {
 #elif defined __linux__
 #define RETRO_PLATFORM   (RETRO_LINUX)
 #define RETRO_DEVICETYPE (RETRO_STANDARD)
+#elif defined __wii__
+#define RETRO_PLATFORM   (RETRO_WII)
+#define RETRO_DEVICETYPE (RETRO_STANDARD)
+#elif defined __WIIU__
+#define RETRO_PLATFORM   (RETRO_WIIU)
+#define RETRO_DEVICETYPE (RETRO_STANDARD)
+#elif defined __vita__
+#define RETRO_PLATFORM   (RETRO_VITA)
+#define RETRO_DEVICETYPE (RETRO_STANDARD)
 #else
 #define RETRO_PLATFORM   (RETRO_WIN)
 #define RETRO_DEVICETYPE (RETRO_STANDARD)
@@ -167,6 +190,7 @@ enum GameRegions {
 #define RETRO_RENDERDEVICE_GLFW (0)
 #define RETRO_RENDERDEVICE_VK   (0)
 #define RETRO_RENDERDEVICE_EGL  (0)
+#define RETRO_RENDERDEVICE_GX   (0)
 
 // ============================
 // AUDIO DEVICE BACKENDS
@@ -183,6 +207,7 @@ enum GameRegions {
 #ifndef RETRO_AUDIODEVICE_MINI
 #define RETRO_AUDIODEVICE_MINI (0)
 #endif
+#define RETRO_AUDIODEVICE_WII  (0)
 
 // ============================
 // INPUT DEVICE BACKENDS
@@ -196,6 +221,7 @@ enum GameRegions {
 #define RETRO_INPUTDEVICE_SDL2   (0)
 #define RETRO_INPUTDEVICE_GLFW   (0)
 #define RETRO_INPUTDEVICE_PDBOAT (0)
+#define RETRO_INPUTDEVICE_WII    (0)
 
 // ============================
 // USER CORE BACKENDS
@@ -426,6 +452,69 @@ enum GameRegions {
 #undef RETRO_INPUTDEVICE_SDL2
 #define RETRO_INPUTDEVICE_SDL2 (1)
 
+#elif RETRO_PLATFORM == RETRO_WII
+
+#if defined(RSDK_USE_GX)
+#undef RETRO_RENDERDEVICE_GX
+#define RETRO_RENDERDEVICE_GX (1)
+#undef RETRO_AUDIODEVICE_WII
+#define RETRO_AUDIODEVICE_WII (1)
+#undef RETRO_INPUTDEVICE_WII
+#define RETRO_INPUTDEVICE_WII (1)
+#undef RETRO_INPUTDEVICE_KEYBOARD
+
+#elif defined(RSDK_USE_SDL2)
+#undef RETRO_RENDERDEVICE_SDL2
+#define RETRO_RENDERDEVICE_SDL2 (1)
+
+#undef RETRO_AUDIODEVICE_SDL2
+#define RETRO_AUDIODEVICE_SDL2 (1)
+
+#undef RETRO_INPUTDEVICE_SDL2
+#define RETRO_INPUTDEVICE_SDL2 (1)
+#else
+#error RSDK_USE_GX or RSDK_USE_SDL2 must be defined.
+#endif
+
+#elif RETRO_PLATFORM == RETRO_WIIU
+
+// (Plus) The Wii U uses SDL2 (devkitPro's wiiu-sdl2) for graphics, sound and
+// controllers: the GamePad, Pro Controller, Wii Remotes and Classic Controllers.
+#if defined(RSDK_USE_SDL2)
+#undef RETRO_RENDERDEVICE_SDL2
+#define RETRO_RENDERDEVICE_SDL2 (1)
+
+#undef RETRO_AUDIODEVICE_SDL2
+#define RETRO_AUDIODEVICE_SDL2 (1)
+
+#undef RETRO_INPUTDEVICE_SDL2
+#define RETRO_INPUTDEVICE_SDL2 (1)
+
+#undef RETRO_INPUTDEVICE_KEYBOARD
+#define RETRO_INPUTDEVICE_KEYBOARD (0)
+#else
+#error RSDK_USE_SDL2 must be defined.
+#endif
+
+#elif RETRO_PLATFORM == RETRO_VITA
+
+// (Plus) The Vita uses SDL2 (VitaSDK's, drawing with GXM) for graphics, sound
+// and its buttons.
+#if defined(RSDK_USE_SDL2)
+#undef RETRO_RENDERDEVICE_SDL2
+#define RETRO_RENDERDEVICE_SDL2 (1)
+
+#undef RETRO_AUDIODEVICE_SDL2
+#define RETRO_AUDIODEVICE_SDL2 (1)
+
+#undef RETRO_INPUTDEVICE_SDL2
+#define RETRO_INPUTDEVICE_SDL2 (1)
+
+#undef RETRO_INPUTDEVICE_KEYBOARD
+#define RETRO_INPUTDEVICE_KEYBOARD (0)
+#else
+#error RSDK_USE_SDL2 must be defined.
+#endif
 #endif
 
 #if RETRO_PLATFORM == RETRO_WIN || RETRO_PLATFORM == RETRO_UWP
@@ -535,6 +624,17 @@ extern "C" {
 #include <androidHelpers.hpp>
 
 #undef RETRO_USING_MOUSE
+#elif RETRO_PLATFORM == RETRO_WII
+// Custom data path for handling multiple instances
+extern char wiiCustomPath[32];
+#elif RETRO_PLATFORM == RETRO_WIIU
+// (Plus) The data folder on the SD card (the Wii's is sd:/RSDKv5/ too).
+#define WIIU_DATA_PATH "fs:/vol/external01/RSDKv5/"
+#undef RETRO_USING_MOUSE
+#elif RETRO_PLATFORM == RETRO_VITA
+// (Plus) The data folder on the memory card.
+#define VITA_DATA_PATH "ux0:data/RSDKv5/"
+#undef RETRO_USING_MOUSE
 #endif
 
 #if RETRO_RENDERDEVICE_SDL2 || RETRO_INPUTDEVICE_SDL2 || RETRO_AUDIODEVICE_SDL2
@@ -548,7 +648,9 @@ extern "C" {
 #endif
 #endif
 
+#if RETRO_PLATFORM != RETRO_WII // FIXME
 #include <theora/theoradec.h>
+#endif
 
 // ============================
 // ENGINE INCLUDES

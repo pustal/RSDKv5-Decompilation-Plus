@@ -17,6 +17,15 @@ platform expects:
            the window's icon (Linux has no icon in the executable): the
            Windows design at 64 pixels, as RGBA bytes the SDL2 and GLFW render
            devices hand to the window when they create it.
+  Wii      platforms/wii/icon.png (the Homebrew Channel's icon)
+           128x48: the R beside PLUS on the plate, full bleed.
+  Wii U    platforms/wiiu/icon.png, tv.png and drc.png (the .wuhb's)
+           a full square, 128 pixels, and the splash screens shown while it
+           loads: the plate with the marks, 1280x720 (TV) and 854x480 (GamePad).
+  Vita     platforms/vita/sce_sys/ (the .vpk's LiveArea)
+           icon0.png (128, full square), pic0.png (960x544), and
+           livearea/contents/bg0.png (840x500) and startup.png (280x158, the
+           wide marks), all as 8-bit palette PNGs, which the Vita asks for.
   Android  android/app/src/main/res/mipmap-*/ic_launcher*.png
            ic_launcher: a round icon for launchers before Android 8; the
            adaptive icon's layers (mipmap-anydpi-v26/ic_launcher.xml):
@@ -30,6 +39,7 @@ root, for the same NRO: pass --mania <path to that repository> to update it too.
 
 Usage (from the repository's root; needs Pillow and NumPy):
     python3 tools/make-icons.py [--header header.png] [--mania ../Sonic-Mania-Decompilation-Plus]
+                                [--only mac,windows,linux,switch,wii,wiiu,vita,android]
 """
 import argparse
 import io
@@ -62,6 +72,17 @@ MAC_SIZES = [(16, 1), (16, 2), (32, 1), (32, 2), (128, 1), (128, 2), (256, 1), (
 WINDOWS_SIZES = [16, 24, 32, 48, 64, 128, 256]
 LINUX_WINDOW_SIZE = 64
 SWITCH_SIZE = 256
+# The Homebrew Channel's icon: 128x48, the marks side by side.
+WII_SIZE = (128, 48)
+# The Wii U's .wuhb: its icon, and the splash screens of the TV and the GamePad.
+WIIU_ICON_SIZE = 128
+WIIU_SPLASHES = {"tv.png": (1280, 720), "drc.png": (854, 480)}
+# The Vita's LiveArea: the icon, the background shown while it loads, the
+# LiveArea's background and its start button.
+VITA_ICON_SIZE = 128
+VITA_PIC_SIZE = (960, 544)
+VITA_BG_SIZE = (840, 500)
+VITA_STARTUP_SIZE = (280, 158)
 
 # Android: launcher icons (48 dp) and adaptive layers (108 dp), per density.
 ANDROID_DENSITIES = {"mdpi": 1.0, "hdpi": 1.5, "xhdpi": 2.0, "xxhdpi": 3.0, "xxxhdpi": 4.0}
@@ -97,6 +118,19 @@ def marks(header_path: Path) -> Image.Image:
     block = Image.new("RGBA", (max(r.width, plus.width), r.height + GAP + plus.height), (0, 0, 0, 0))
     block.alpha_composite(r, ((block.width - r.width) // 2, 0))
     block.alpha_composite(plus, ((block.width - plus.width) // 2, r.height + GAP))
+    return block
+
+
+def marks_side(header_path: Path) -> Image.Image:
+    """The R beside PLUS (for wide icons), at full size (R_HEIGHT tall), PLUS centred on the R's height."""
+    header = np.array(Image.open(header_path).convert("RGB"))
+    r = lift(header, R_BOX)
+    r = r.resize((round(r.width * R_HEIGHT / r.height), R_HEIGHT), Image.LANCZOS)
+    plus = lift(header, PLUS_BOX)
+    plus = plus.resize((PLUS_WIDTH, round(plus.height * PLUS_WIDTH / plus.width)), Image.LANCZOS)
+    block = Image.new("RGBA", (r.width + GAP + plus.width, r.height), (0, 0, 0, 0))
+    block.alpha_composite(r, (0, 0))
+    block.alpha_composite(plus, (r.width + GAP, (r.height - plus.height) // 2))
     return block
 
 
@@ -165,6 +199,23 @@ def windows_icon(block: Image.Image) -> Image.Image:
 def switch_icon(block: Image.Image) -> Image.Image:
     """Switch: a full square (the Homebrew Menu shows it as it is)."""
     return place(plate(CANVAS, "square"), block, 0.74).convert("RGB")
+
+
+def wii_icon(side_block: Image.Image) -> Image.Image:
+    """Wii: the side-by-side marks on a full-bleed plate, WII_SIZE (drawn 8 times larger, then shrunk)."""
+    width, height = WII_SIZE[0] * 8, WII_SIZE[1] * 8
+    canvas = gradient(width).resize((width, height), Image.LANCZOS)
+    scale = min(width * 0.88 / side_block.width, height * 0.78 / side_block.height)
+    scaled = side_block.resize((round(side_block.width * scale), round(side_block.height * scale)), Image.LANCZOS)
+    canvas.alpha_composite(scaled, ((width - scaled.width) // 2, (height - scaled.height) // 2))
+    return canvas.resize(WII_SIZE, Image.LANCZOS).convert("RGB")
+
+
+def splash(block: Image.Image, size: tuple) -> Image.Image:
+    """A splash screen of @p size: the plate's gradient, the marks centred at half its height."""
+    width, height = size
+    canvas = gradient(max(width, height)).resize((width, height), Image.LANCZOS)
+    return place(canvas, block, 0.5).convert("RGB")
 
 
 def android_legacy(block: Image.Image) -> Image.Image:
@@ -250,6 +301,47 @@ def write_switch(icon: Image.Image, root: Path, mania: Path | None) -> None:
         print(f"Switch: {target}")
 
 
+def write_wii(icon: Image.Image, root: Path) -> None:
+    target = root / "platforms" / "wii" / "icon.png"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    icon.save(target, optimize=True)
+    print(f"Wii: {target.relative_to(root)}")
+
+
+def write_wiiu(block: Image.Image, root: Path) -> None:
+    folder = root / "platforms" / "wiiu"
+    folder.mkdir(parents=True, exist_ok=True)
+    shrink(switch_icon(block), WIIU_ICON_SIZE).save(folder / "icon.png", optimize=True)
+    for name, size in WIIU_SPLASHES.items():
+        splash(block, size).save(folder / name, optimize=True)
+    print(f"Wii U: {folder.relative_to(root)}/icon.png, " + ", ".join(WIIU_SPLASHES))
+
+
+def write_vita(block: Image.Image, side_block: Image.Image, root: Path) -> None:
+    def palette(image: Image.Image) -> Image.Image:
+        return image.convert("RGB").quantize(colors=256, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+
+    folder = root / "platforms" / "vita" / "sce_sys"
+    contents = folder / "livearea" / "contents"
+    contents.mkdir(parents=True, exist_ok=True)
+    palette(shrink(switch_icon(block), VITA_ICON_SIZE)).save(folder / "icon0.png", optimize=True)
+    palette(splash(block, VITA_PIC_SIZE)).save(folder / "pic0.png", optimize=True)
+    palette(splash(block, VITA_BG_SIZE)).save(contents / "bg0.png", optimize=True)
+    width, height = VITA_STARTUP_SIZE
+    startup = gradient(width).resize((width, height), Image.LANCZOS)
+    scale = min(width * 0.8 / side_block.width, height * 0.6 / side_block.height)
+    scaled = side_block.resize((round(side_block.width * scale), round(side_block.height * scale)), Image.LANCZOS)
+    startup.alpha_composite(scaled, ((width - scaled.width) // 2, (height - scaled.height) // 2))
+    palette(startup).save(contents / "startup.png", optimize=True)
+    (contents / "template.xml").write_text(
+        '<?xml version="1.0" encoding="utf-8"?>\n\n'
+        '<livearea style="a5" format-ver="01.00" content-rev="1">\n'
+        "  <livearea-background>\n    <image>bg0.png</image>\n  </livearea-background>\n\n"
+        "  <gate>\n    <startup-image>startup.png</startup-image>\n  </gate>\n"
+        "</livearea>\n")
+    print(f"Vita: {folder.relative_to(root)}")
+
+
 def write_linux(icon: Image.Image, root: Path) -> None:
     """The window icon as a C++ header: LINUX_WINDOW_SIZE squared RGBA pixels, row by row."""
     size = LINUX_WINDOW_SIZE
@@ -311,20 +403,40 @@ def write_android(block: Image.Image, root: Path) -> None:
     print(f"Android: {len(ANDROID_DENSITIES)} densities in {res.relative_to(root)}")
 
 
+# The platforms --only accepts, in the order they are written.
+PLATFORMS = ["mac", "windows", "linux", "switch", "wii", "wiiu", "vita", "android"]
+
+
 def main() -> None:
     root = Path(__file__).resolve().parent.parent
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--header", type=Path, default=root / "header.png", help="the README header (default: header.png)")
     parser.add_argument("--mania", type=Path, help="Sonic-Mania-Decompilation-Plus, to update its switch-icon.jpg too")
+    parser.add_argument("--only", help="comma-separated platforms to write (default: all): " + ", ".join(PLATFORMS))
     args = parser.parse_args()
+    chosen = set(args.only.split(",")) if args.only else set(PLATFORMS)
+    unknown = chosen - set(PLATFORMS)
+    if unknown:
+        parser.error("unknown platform(s): " + ", ".join(sorted(unknown)))
 
     block = marks(args.header)
-    write_mac(mac_icon(block), root)
+    if "mac" in chosen:
+        write_mac(mac_icon(block), root)
     windows = windows_icon(block)
-    write_windows(windows, root)
-    write_linux(windows, root)
-    write_switch(switch_icon(block), root, args.mania)
-    write_android(block, root)
+    if "windows" in chosen:
+        write_windows(windows, root)
+    if "linux" in chosen:
+        write_linux(windows, root)
+    if "switch" in chosen:
+        write_switch(switch_icon(block), root, args.mania)
+    if "wii" in chosen:
+        write_wii(wii_icon(marks_side(args.header)), root)
+    if "wiiu" in chosen:
+        write_wiiu(block, root)
+    if "vita" in chosen:
+        write_vita(block, marks_side(args.header), root)
+    if "android" in chosen:
+        write_android(block, root)
 
 
 if __name__ == "__main__":

@@ -8,7 +8,12 @@ using namespace RSDK;
 
 #define STB_VORBIS_NO_PUSHDATA_API
 #define STB_VORBIS_NO_STDIO
+#if RETRO_PLATFORM == RETRO_WII // Wii needs s16 conversion from stb_vorbis
+// Helper to add two s16 samples and clamp back to s16
+#define ADD_CLAMP_S16(x,y) CLAMP((int32)x + (int32)y, -0x7FFF, 0x7FFF)
+#else
 #define STB_VORBIS_NO_INTEGER_CONVERSION
+#endif
 #include "stb_vorbis/stb_vorbis.c"
 
 stb_vorbis *vorbisInfo = NULL;
@@ -64,6 +69,8 @@ float linearInterpolationLookup[LINEAR_INTERPOLATION_LOOKUP_LENGTH];
 #include "MiniAudio/MiniAudioDevice.cpp"
 #elif RETRO_AUDIODEVICE_OBOE
 #include "Oboe/OboeAudioDevice.cpp"
+#elif RETRO_AUDIODEVICE_WII
+#include "Wii/WiiAudioDevice.cpp"
 #endif
 
 uint8 AudioDeviceBase::initializedAudioChannels = false;
@@ -126,8 +133,13 @@ void AudioDeviceBase::ProcessAudioMixing(void *stream, int32 length)
                     channel->bufferPos += FROM_FIXED(speedPercent);
                     speedPercent %= TO_FIXED(1);
 
+#if RETRO_PLATFORM == RETRO_WII
+                    curStreamF[0] = ADD_CLAMP_S16(curStreamF[0], sample * panL);
+                    curStreamF[1] = ADD_CLAMP_S16(curStreamF[1], sample * panR);
+#else
                     curStreamF[0] += sample * panL;
                     curStreamF[1] += sample * panR;
+#endif
                     curStreamF += 2;
 
                     if (channel->bufferPos >= channel->sampleLength) {
@@ -167,8 +179,13 @@ void AudioDeviceBase::ProcessAudioMixing(void *stream, int32 length)
                     int32 next = FROM_FIXED(speedPercent);
                     speedPercent %= TO_FIXED(1);
 
+#if RETRO_PLATFORM == RETRO_WII
+                    curStreamF[0] = ADD_CLAMP_S16(curStreamF[0], streamBuffer[0] * panL);
+                    curStreamF[1] = ADD_CLAMP_S16(curStreamF[1], streamBuffer[1] * panR);
+#else
                     curStreamF[0] += streamBuffer[0] * panL;
                     curStreamF[1] += streamBuffer[1] * panR;
+#endif
                     curStreamF += 2;
 
                     streamBuffer += next * 2;
@@ -213,24 +230,35 @@ void AudioDeviceBase::InitAudioChannels()
 void RSDK::UpdateStreamBuffer(ChannelInfo *channel)
 {
     int32 bufferRemaining = MIX_BUFFER_SIZE;
-    float *buffer         = channel->samplePtr;
+    SAMPLE_FORMAT *buffer = channel->samplePtr;
 
 #if RETRO_USE_PLUS
     if (hcaStream) {
         // (Plus) An HCA track loops where its file says (Hca::Stream::Read()).
-        const int32 frames = hcaStream->Read(buffer, MIX_BUFFER_SIZE / 2, channel->loop == 1);
+        // It decodes to floats: where the mixer takes 16-bit samples (the Wii)
+        // they are converted from a buffer of their own.
+#if RETRO_PLATFORM == RETRO_WII
+        static float decoded[MIX_BUFFER_SIZE];
+#else
+        float *decoded = buffer;
+#endif
+        const int32 frames = hcaStream->Read(decoded, MIX_BUFFER_SIZE / 2, channel->loop == 1);
         if (frames < MIX_BUFFER_SIZE / 2) {
             channel->state   = CHANNEL_IDLE;
             channel->soundID = -1;
-            memset(buffer + frames * 2, 0, sizeof(float) * (MIX_BUFFER_SIZE - frames * 2));
+            memset(decoded + frames * 2, 0, sizeof(float) * (MIX_BUFFER_SIZE - frames * 2));
         }
-        for (int32 i = 0; i < MIX_BUFFER_SIZE; ++i) channel->samplePtr[i] *= 0.5f;
+        for (int32 i = 0; i < MIX_BUFFER_SIZE; ++i) channel->samplePtr[i] = FloatToSample(decoded[i] * 0.5f);
         return;
     }
 #endif
 
     for (int32 s = 0; s < MIX_BUFFER_SIZE;) {
+#if RETRO_PLATFORM == RETRO_WII
+        int32 samples = stb_vorbis_get_samples_short_interleaved(vorbisInfo, 2, buffer, bufferRemaining) * 2;
+#else
         int32 samples = stb_vorbis_get_samples_float_interleaved(vorbisInfo, 2, buffer, bufferRemaining) * 2;
+#endif
         if (!samples) {
             if (channel->loop == 1 && stb_vorbis_seek_frame(vorbisInfo, streamLoopPoint)) {
                 // we're looping & the seek was successful, get more samples
@@ -238,7 +266,7 @@ void RSDK::UpdateStreamBuffer(ChannelInfo *channel)
             else {
                 channel->state   = CHANNEL_IDLE;
                 channel->soundID = -1;
-                memset(buffer, 0, sizeof(float) * bufferRemaining);
+                memset(buffer, 0, sizeof(SAMPLE_FORMAT) * bufferRemaining);
 
                 break;
             }
@@ -406,8 +434,8 @@ void RSDK::LoadSfxToSlot(char *filename, uint8 slot, uint8 plays, uint8 scope)
             std::vector<uint8> file(info.fileSize);
             std::vector<float> samples;
             if (ReadBytes(&info, file.data(), info.fileSize) == (size_t)info.fileSize && Hca::DecodeEffect(file.data(), info.fileSize, &samples)) {
-                AllocateStorage((void **)&sfxList[slot].buffer, sizeof(float) * (uint32)samples.size(), DATASET_SFX, false);
-                memcpy(sfxList[slot].buffer, samples.data(), sizeof(float) * samples.size());
+                AllocateStorage((void **)&sfxList[slot].buffer, sizeof(SAMPLE_FORMAT) * (uint32)samples.size(), DATASET_SFX, false);
+                for (size_t i = 0; i < samples.size(); ++i) sfxList[slot].buffer[i] = FloatToSample(samples[i]);
                 sfxList[slot].length = (int32)samples.size();
             }
             else {
@@ -473,16 +501,21 @@ void RSDK::LoadSfxToSlot(char *filename, uint8 slot, uint8 plays, uint8 scope)
                 if (sampleBits == 16)
                     length /= 2;
 
-                AllocateStorage((void **)&sfxList[slot].buffer, sizeof(float) * length, DATASET_SFX, false);
+                AllocateStorage((void **)&sfxList[slot].buffer, sizeof(SAMPLE_FORMAT) * length, DATASET_SFX, false);
                 sfxList[slot].length = length;
 
-                // Convert the sample data to F32 format
-                float *buffer = (float *)sfxList[slot].buffer;
+                // Convert the sample data to SAMPLE_FORMAT
+                SAMPLE_FORMAT *buffer = (SAMPLE_FORMAT *)sfxList[slot].buffer;
                 if (sampleBits == 8) {
                     // 8-bit sample. Convert from U8 to S8, and then from S8 to F32.
                     for (int32 s = 0; s < length; ++s) {
+#if RETRO_PLATFORM == RETRO_WII
+                        int16 sample = (int16) ReadInt8(&info);
+                        *buffer++ = (int16) (sample << 8) - 32768;
+#else
                         int32 sample = ReadInt8(&info);
                         *buffer++    = (sample - 0x80) / (float)0x80;
+#endif
                     }
                 }
                 else {
@@ -490,12 +523,19 @@ void RSDK::LoadSfxToSlot(char *filename, uint8 slot, uint8 plays, uint8 scope)
                     for (int32 s = 0; s < length; ++s) {
                         // For some reason, the game performs sign-extension manually here.
                         // Note that this is different from the 8-bit format's unsigned-to-signed conversion.
+#if RETRO_PLATFORM == RETRO_WII
+                        int16 sample = ReadInt16(&info);
+                        if (sample > 0x7FFF)
+                            sample = (sample & 0x7FFF) - 0x8000;
+                        *buffer++ = (int16) (sample * 0.75);
+#else
                         int32 sample = (uint16)ReadInt16(&info);
 
                         if (sample > 0x7FFF)
                             sample = (sample & 0x7FFF) - 0x8000;
 
                         *buffer++ = (sample / (float)0x8000) * 0.75f;
+#endif
                     }
                 }
             }
@@ -526,10 +566,10 @@ void RSDK::LoadSfxToSlot(char *filename, uint8 slot, uint8 plays, uint8 scope)
                 if (decoded > 0 && oggInfo.sample_rate > 0) {
                     const double step   = oggInfo.sample_rate / (double)AUDIO_FREQUENCY;
                     const uint32 length = (uint32)(decoded / step);
-                    AllocateStorage((void **)&sfxList[slot].buffer, sizeof(float) * length, DATASET_SFX, false);
+                    AllocateStorage((void **)&sfxList[slot].buffer, sizeof(SAMPLE_FORMAT) * length, DATASET_SFX, false);
                     sfxList[slot].length = length;
 
-                    float *buffer = (float *)sfxList[slot].buffer;
+                    SAMPLE_FORMAT *buffer = sfxList[slot].buffer;
                     for (uint32 s = 0; s < length; ++s) {
                         // Linear interpolation between the two nearest source samples.
                         const double pos  = s * step;
@@ -537,7 +577,7 @@ void RSDK::LoadSfxToSlot(char *filename, uint8 slot, uint8 plays, uint8 scope)
                         const float frac  = (float)(pos - index);
                         const float a     = source[index];
                         const float b     = index + 1 < decoded ? source[index + 1] : a;
-                        *buffer++         = (a + (b - a) * frac) * 0.75f; // Same level as .wav effects.
+                        *buffer++         = FloatToSample((a + (b - a) * frac) * 0.75f); // Same level as .wav effects.
                     }
                 }
                 else {

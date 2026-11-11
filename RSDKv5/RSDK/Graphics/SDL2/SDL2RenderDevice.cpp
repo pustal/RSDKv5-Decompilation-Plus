@@ -20,6 +20,11 @@ uint8 RenderDevice::lastTextureFormat = -1;
 
 bool RenderDevice::Init()
 {
+#if RETRO_PLATFORM == RETRO_VITA
+    // (Plus) The Vita's rear touchpad stays off (the hands holding it touch it).
+    // Set before SDL starts its video, which reads it.
+    SDL_setenv("VITA_DISABLE_TOUCH_BACK", "1", 1);
+#endif
     const char *gameTitle = gameVerInfo.gameTitle;
 
     SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
@@ -42,6 +47,16 @@ bool RenderDevice::Init()
     videoSettings.windowed     = false;
     videoSettings.windowWidth  = 1920;
     videoSettings.windowHeight = 1080;
+    flags |= SDL_WINDOW_FULLSCREEN;
+#elif RETRO_PLATFORM == RETRO_WIIU
+    // (Plus) The TV's and the GamePad's screen, at the TV's resolution.
+    videoSettings.windowed = false;
+    flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+#elif RETRO_PLATFORM == RETRO_VITA
+    // (Plus) The Vita's screen.
+    videoSettings.windowed     = false;
+    videoSettings.windowWidth  = 960;
+    videoSettings.windowHeight = 544;
     flags |= SDL_WINDOW_FULLSCREEN;
 #endif
 

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<app version="1">
+  <name>Sonic Mania (RSDKv5 Plus)</name>
+  <coder>RSDKModding, Mefiresu (Wii), Eduardo Martins (Plus)</coder>
+  <version>1.6.0</version>
+  <release_date>20261110000000</release_date>
+  <short_description>RSDKv5-Decompilation-Plus</short_description>
+  <long_description>Sonic Mania's decompilation with the Plus module: Sonic 1, 2 and CD from their own packs, Sonic Mania's music for them, and the Plus menu (Minus button).
+
+Bring your own game data: copy Data.rsdk to sd:/RSDKv5/, and retro packs to sd:/RSDKv5/retro/.
+
+Add the argument path=/OtherFolder/ to read the data from another folder.</long_description>
+  <arguments>
+  </arguments>
+</app>

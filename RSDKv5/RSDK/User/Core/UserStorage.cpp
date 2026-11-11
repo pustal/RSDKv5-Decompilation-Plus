@@ -1,6 +1,9 @@
 #include "RSDK/Core/RetroEngine.hpp"
 
 #include <filesystem>
+#if RETRO_PLATFORM == RETRO_WIIU || RETRO_PLATFORM == RETRO_VITA
+#include <sys/stat.h> // (Plus) mkdir(), for the data folder
+#endif
 
 #if RETRO_REV02
 
@@ -1180,6 +1183,19 @@ void RSDK::SKU::InitUserDirectory()
 #elif RETRO_PLATFORM == RETRO_LINUX
 
     SKU::SetUserFileCallbacks("./", NULL, NULL);
+
+#elif RETRO_PLATFORM == RETRO_WII
+    SKU::SetUserFileCallbacks(wiiCustomPath, NULL, NULL);
+
+#elif RETRO_PLATFORM == RETRO_WIIU
+    // (Plus) The SD card's RSDKv5 folder, made on the first start.
+    mkdir(WIIU_DATA_PATH, 0777);
+    SKU::SetUserFileCallbacks(WIIU_DATA_PATH, NULL, NULL);
+
+#elif RETRO_PLATFORM == RETRO_VITA
+    // (Plus) ux0:data/RSDKv5/, made on the first start.
+    mkdir(VITA_DATA_PATH, 0777);
+    SKU::SetUserFileCallbacks(VITA_DATA_PATH, NULL, NULL);
 
 #else
 

@@ -179,6 +179,8 @@ void RSDK::FitImageQuad(RenderVertex *vertices, int32 vertexCount)
 #include "Vulkan/VulkanRenderDevice.cpp"
 #elif RETRO_RENDERDEVICE_EGL
 #include "EGL/EGLRenderDevice.cpp"
+#elif RETRO_RENDERDEVICE_GX
+#include "GX/GXRenderDevice.cpp"
 #endif
 
 RenderDevice::WindowInfo RenderDevice::displayInfo;
