@@ -13,8 +13,8 @@ android {
         applicationId "org.rems.rsdkv5"
         minSdkVersion 21
         targetSdkVersion 33
-        versionCode 160
-        versionName "1.6.0"
+        versionCode 170
+        versionName "1.7.0"
         if(project.hasProperty("RETRO_DISABLE_PLUS"))
             autobuildFlag = true
         if(project.hasProperty("RETRO_REVISION"))
