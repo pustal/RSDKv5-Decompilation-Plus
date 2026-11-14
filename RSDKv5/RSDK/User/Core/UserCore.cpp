@@ -373,6 +373,14 @@ void RSDK::LoadSettingsINI()
 
         videoSettings.windowed       = iniparser_getboolean(ini, "Video:windowed", true);
         videoSettings.bordered       = iniparser_getboolean(ini, "Video:border", true);
+#if !RETRO_USE_ORIGINAL_CODE
+        // (Plus) Earlier builds wrote "border=n" into every new Settings.ini, which now gives a
+        // window without a title bar that can be neither moved nor resized. A Settings.ini written
+        // before the resizable window (no "resizableWindow" key) gets the framed window once; after
+        // that, "border" is the player's own choice again (the game's options menu sets it).
+        if (iniparser_find_entry(ini, "Video:resizableWindow") == 0)
+            videoSettings.bordered = true;
+#endif
         videoSettings.exclusiveFS    = iniparser_getboolean(ini, "Video:exclusiveFS", false);
         videoSettings.vsync          = iniparser_getboolean(ini, "Video:vsync", false);
         videoSettings.tripleBuffered = iniparser_getboolean(ini, "Video:tripleBuffering", false);
@@ -727,6 +735,11 @@ void RSDK::SaveSettingsINI(bool32 writeToFile)
         WriteText(file, "; If not listed, fullscreen will just use the desktop resolution\n");
         WriteText(file, "windowed=%s\n", (videoSettings.windowed ? "y" : "n"));
         WriteText(file, "border=%s\n", (videoSettings.bordered ? "y" : "n"));
+#if !RETRO_USE_ORIGINAL_CODE
+        // (Plus) Marks a Settings.ini written by a build with the resizable window (see LoadSettingsINI()).
+        WriteText(file, "; The window (with border=y) can be moved and resized\n");
+        WriteText(file, "resizableWindow=y\n");
+#endif
         WriteText(file, "exclusiveFS=%s\n", (videoSettings.exclusiveFS ? "y" : "n"));
         WriteText(file, "vsync=%s\n", (videoSettings.vsync ? "y" : "n"));
         WriteText(file, "tripleBuffering=%s\n", (videoSettings.tripleBuffered ? "y" : "n"));
