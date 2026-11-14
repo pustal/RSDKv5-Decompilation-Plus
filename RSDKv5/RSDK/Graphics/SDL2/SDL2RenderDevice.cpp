@@ -745,6 +745,12 @@ void RenderDevice::ProcessEvent(SDL_Event event)
             }
             break;
 
+#if !RETRO_USE_ORIGINAL_CODE
+        // (Plus) Shared with the DirectX builds' SDL controller support (SDL2InputDevice.cpp).
+        case SDL_CONTROLLERDEVICEADDED: SKU::AddSDL2Controller(event.cdevice.which); break;
+
+        case SDL_CONTROLLERDEVICEREMOVED: SKU::RemoveSDL2Controller(event.cdevice.which); break;
+#else
         case SDL_CONTROLLERDEVICEADDED: {
             SDL_GameController *game_controller = SDL_GameControllerOpen(event.cdevice.which);
 
@@ -770,6 +776,7 @@ void RenderDevice::ProcessEvent(SDL_Event event)
             RemoveInputDevice(InputDeviceFromID(id));
             break;
         }
+#endif
 
         case SDL_APP_WILLENTERFOREGROUND:
 #if RETRO_REV02

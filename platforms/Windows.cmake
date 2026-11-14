@@ -105,6 +105,23 @@ else()
     message(FATAL_ERROR "RETRO_SUBSYSTEM must be one of DX9, DX11, OGL, VK, or SDL2")
 endif()
 
+# (Plus) Controllers beyond XInput for the DirectX builds: SDL2's game controller support
+# (PlayStation 3/4/5, Switch Pro Controller and Joy-Cons, Switch Online controllers, Stadia,
+# Luna and the many controllers in SDL's database) next to the engine's own XInput support.
+# SDL2 is only used for controllers there; the rest of the engine stays on DirectX/XAudio.
+option(RETRO_WIN_SDL2_INPUT "DX9/DX11: support PlayStation, Nintendo and other controllers through SDL2 (needs SDL2)." ON)
+if(RETRO_WIN_SDL2_INPUT AND (RETRO_SUBSYSTEM STREQUAL "DX9" OR RETRO_SUBSYSTEM STREQUAL "DX11"))
+    find_package(SDL2 CONFIG)
+    if(SDL2_FOUND)
+        message("found SDL2: PlayStation, Nintendo and other controllers are supported")
+        target_compile_definitions(RetroEngine PRIVATE RETRO_WIN_SDL2_INPUT=1 SDL_MAIN_HANDLED)
+        target_link_libraries(RetroEngine $<IF:$<TARGET_EXISTS:SDL2::SDL2-static>,SDL2::SDL2-static,SDL2::SDL2>)
+    else()
+        message(WARNING "SDL2 not found: only XInput controllers will be supported "
+                        "(install it, e.g. vcpkg install sdl2, or set RETRO_WIN_SDL2_INPUT=OFF)")
+    endif()
+endif()
+
 if(USE_MINIAUDIO)
     if(RETRO_SUBSYSTEM STREQUAL "DX9" OR RETRO_SUBSYSTEM STREQUAL "DX11")
         message(FATAL_ERROR "portaudio not supported for DX9 and DX11.")

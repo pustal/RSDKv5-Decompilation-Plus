@@ -519,7 +519,12 @@ void RSDK::LoadSettingsINI()
     }
     else {
         videoSettings.windowed       = true;
+#if RETRO_USE_ORIGINAL_CODE
         videoSettings.bordered       = false;
+#else
+        // (Plus) A framed window, which can be moved and resized, as with "border=y" in Settings.ini.
+        videoSettings.bordered       = true;
+#endif
         videoSettings.exclusiveFS    = true;
         videoSettings.vsync          = true;
         videoSettings.tripleBuffered = false;

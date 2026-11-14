@@ -1,7 +1,9 @@
 #ifndef READER_H
 #define READER_H
 
-#if RETRO_RENDERDEVICE_SDL2 || RETRO_AUDIODEVICE_SDL2 || RETRO_INPUTDEVICE_SDL2
+// (Plus) The DirectX builds that use SDL2 only for controllers (RETRO_WIN_SDL2_INPUT) keep the C
+// library's files, as before.
+#if RETRO_RENDERDEVICE_SDL2 || RETRO_AUDIODEVICE_SDL2 || (RETRO_INPUTDEVICE_SDL2 && !RETRO_WIN_SDL2_INPUT)
 #define FileIO                                          SDL_RWops
 #define fOpen(path, mode)                               SDL_RWFromFile(path, mode)
 #define fRead(buffer, elementSize, elementCount, file)  SDL_RWread(file, buffer, elementSize, elementCount)

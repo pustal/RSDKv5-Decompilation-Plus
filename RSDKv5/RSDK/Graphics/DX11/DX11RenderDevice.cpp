@@ -10,7 +10,14 @@
 #include "Ks.h"      // used for KSCATEGORY_AUDIO
 #include "Ksmedia.h" // used for KSCATEGORY_AUDIO
 
+#include "../Win32/Win32Window.hpp"
+
+#if RETRO_USE_ORIGINAL_CODE
 #define DX11_WINDOWFLAGS_BORDERED   (WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_GROUP)
+#else
+// (Plus) An ordinary window: it can be moved, resized, minimised and maximised (Win32Window.hpp).
+#define DX11_WINDOWFLAGS_BORDERED   (RSDK::Win32Window::kBorderedStyle)
+#endif
 #define DX11_WINDOWFLAGS_BORDERLESS (WS_POPUP)
 
 HWND RenderDevice::windowHandle;
@@ -90,6 +97,11 @@ bool RenderDevice::Init()
         return false;
 
     ShowCursor(false);
+
+#if !RETRO_USE_ORIGINAL_CODE
+    // (Plus) Start larger than the 1x default when the screen has room for it.
+    Win32Window::FitStartupWindowSize();
+#endif
 
     tagRECT winRect;
     if (videoSettings.windowed) {
@@ -609,6 +621,14 @@ bool RenderDevice::InitGraphicsAPI()
         if (videoSettings.windowed) {
             viewSize.x = videoSettings.windowWidth;
             viewSize.y = videoSettings.windowHeight;
+#if !RETRO_USE_ORIGINAL_CODE
+            // (Plus) The window can be resized or maximised: the swap chain covers its client area.
+            int32 clientWidth = 0, clientHeight = 0;
+            if (Win32Window::GetClientSize(windowHandle, &clientWidth, &clientHeight)) {
+                viewSize.x = (float)clientWidth;
+                viewSize.y = (float)clientHeight;
+            }
+#endif
         }
         else {
             viewSize.x = displayWidth[dxAdapter];
@@ -865,8 +885,35 @@ bool RenderDevice::InitGraphicsAPI()
     videoSettings.viewportW = 1.0 / viewSize.x;
     videoSettings.viewportH = 1.0 / viewSize.y;
 
+#if !RETRO_USE_ORIGINAL_CODE
+    Win32Window::NoteAppliedSize(windowHandle);
+#endif
+
     return true;
 }
+
+#if !RETRO_USE_ORIGINAL_CODE
+void RenderDevice::ApplyWindowResize()
+{
+    int32 width = 0, height = 0;
+    if (!Win32Window::TakeNewSize(windowHandle, &width, &height))
+        return;
+
+    PrintLog(PRINT_NORMAL, "Window resized to %dx%d", width, height);
+
+    // Rebuild the device and swap chain for the new size, as RefreshWindow() does, without moving the window.
+    videoSettings.windowState = WINDOWSTATE_UNINITIALIZED;
+    Release(true);
+    if (!InitGraphicsAPI() || !InitShaders()) {
+        PrintLog(PRINT_NORMAL, "Could not rebuild the renderer for the new window size");
+        return;
+    }
+    videoSettings.windowState = WINDOWSTATE_ACTIVE;
+
+    // Keep the (restored) window size for the next start.
+    SaveSettingsINI(true);
+}
+#endif
 
 void RenderDevice::LoadShader(const char *fileName, bool32 linear)
 {
@@ -1943,8 +1990,31 @@ LRESULT CALLBACK RenderDevice::WindowEventCallback(HWND hRecipient, UINT message
             forceExit = true;
             break;
 
-        case WM_MOVE:
-        case WM_SIZE: forceExit = true; break;
+        case WM_MOVE: forceExit = true; break;
+
+        case WM_SIZE:
+#if !RETRO_USE_ORIGINAL_CODE
+            // (Plus) Follow the window's size: at once when maximised or restored, when the drag
+            // ends when the frame is being dragged.
+            if (Win32Window::ShouldFollowSize(wParam)) {
+                if (Win32Window::Sizing().inSizeMove)
+                    Win32Window::Sizing().resizePending = true;
+                else
+                    ApplyWindowResize();
+            }
+#endif
+            forceExit = true;
+            break;
+
+#if !RETRO_USE_ORIGINAL_CODE
+        case WM_GETMINMAXINFO:
+            // (Plus) No smaller than the game's resolution.
+            if (videoSettings.windowed) {
+                Win32Window::LimitMinimumSize(hRecipient, (MINMAXINFO *)lParam);
+                forceExit = true;
+            }
+            break;
+#endif
 
         case WM_ACTIVATE:
             if (wParam) {
@@ -2047,10 +2117,21 @@ LRESULT CALLBACK RenderDevice::WindowEventCallback(HWND hRecipient, UINT message
             touchInfo.down[0] = 0;
             touchInfo.count   = 0;
 
+#if !RETRO_USE_ORIGINAL_CODE
+            if (message == WM_ENTERSIZEMOVE)
+                Win32Window::Sizing().inSizeMove = true;
+#endif
+
             forceExit = true;
             break;
 
         case WM_EXITSIZEMOVE:
+#if !RETRO_USE_ORIGINAL_CODE
+            // (Plus) The drag ended: rebuild for the size it left the window at.
+            Win32Window::Sizing().inSizeMove = false;
+            if (Win32Window::Sizing().resizePending)
+                ApplyWindowResize();
+#endif
             GetDisplays();
 
             forceExit = true;

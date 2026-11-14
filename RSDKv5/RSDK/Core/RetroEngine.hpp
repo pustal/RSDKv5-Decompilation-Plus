@@ -311,6 +311,13 @@ enum GameRegions {
 #undef RETRO_INPUTDEVICE_RAWINPUT
 #define RETRO_INPUTDEVICE_RAWINPUT (1)
 
+// (Plus) SDL2's game controller support next to XInput, for the controllers XInput doesn't
+// know (PlayStation, Nintendo and many others); set by platforms/Windows.cmake when SDL2 is found.
+#if RETRO_WIN_SDL2_INPUT
+#undef RETRO_INPUTDEVICE_SDL2
+#define RETRO_INPUTDEVICE_SDL2 (1)
+#endif
+
 #elif defined(RSDK_USE_DX11)
 #undef RETRO_RENDERDEVICE_DIRECTX11
 #define RETRO_RENDERDEVICE_DIRECTX11 (1)
@@ -320,6 +327,13 @@ enum GameRegions {
 
 #undef RETRO_INPUTDEVICE_RAWINPUT
 #define RETRO_INPUTDEVICE_RAWINPUT (1)
+
+// (Plus) SDL2's game controller support next to XInput, for the controllers XInput doesn't
+// know (PlayStation, Nintendo and many others); set by platforms/Windows.cmake when SDL2 is found.
+#if RETRO_WIN_SDL2_INPUT
+#undef RETRO_INPUTDEVICE_SDL2
+#define RETRO_INPUTDEVICE_SDL2 (1)
+#endif
 
 #elif defined(RSDK_USE_OGL)
 #undef RETRO_RENDERDEVICE_GLFW

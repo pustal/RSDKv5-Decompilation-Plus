@@ -101,6 +101,10 @@ private:
     static void GetDisplays();
 
     static void ProcessEvent(MSG msg);
+#if !RETRO_USE_ORIGINAL_CODE
+    // (Plus) Rebuilds the renderer for the window's new client size (see Win32Window.hpp).
+    static void ApplyWindowResize();
+#endif
     static LRESULT CALLBACK WindowEventCallback(HWND hRecipient, UINT message, WPARAM wParam, LPARAM lParam);
 
     static bool useFrequency;

@@ -204,7 +204,19 @@ RSDK::SKU::InputDeviceSDL *RSDK::SKU::InitSDL2InputDevice(uint32 id, SDL_GameCon
 
     const char *name = SDL_GameControllerName(device->controllerPtr);
 
+#if !RETRO_USE_ORIGINAL_CODE
+    // (Plus) SDL knows the family of most controllers; the names below are the fallback for the
+    // ones it can't tell (the Wii U's and the Vita's built-in controllers, Saturn pads, ...).
+    bool32 typeKnown = false;
+    if (GetSDL2ControllerType(device->controllerPtr, &controllerType)) {
+        typeKnown        = true;
+        device->swapABXY = controllerType == DEVICE_SWITCH_PRO;
+    }
+
+    if (!typeKnown && name != NULL) {
+#else
     if (name != NULL) {
+#endif
         if (strstr(name, "Xbox"))
             controllerType = DEVICE_XBOX;
         else if (strstr(name, "Playstation") || strstr(name, "PS3") || strstr(name, "PS4") || strstr(name, "PS5") || strstr(name, "Vita"))
@@ -236,8 +248,152 @@ RSDK::SKU::InputDeviceSDL *RSDK::SKU::InitSDL2InputDevice(uint32 id, SDL_GameCon
     return device;
 }
 
+#if !RETRO_USE_ORIGINAL_CODE
+bool32 RSDK::SKU::GetSDL2ControllerType(SDL_GameController *controller, uint8 *controllerType)
+{
+#if SDL_VERSION_ATLEAST(2, 0, 12)
+    switch (SDL_GameControllerGetType(controller)) {
+        case SDL_CONTROLLER_TYPE_PS3:
+        case SDL_CONTROLLER_TYPE_PS4:
+#if SDL_VERSION_ATLEAST(2, 0, 14)
+        case SDL_CONTROLLER_TYPE_PS5:
+#endif
+            *controllerType = DEVICE_PS4;
+            return true;
+
+        // Nintendo's layout (A on the right, B at the bottom): the Pro Controller, the Joy-Cons
+        // (single or as a pair) and the Switch Online controllers.
+        case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_PRO:
+#if SDL_VERSION_ATLEAST(2, 24, 0)
+        case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_LEFT:
+        case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_RIGHT:
+        case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_PAIR:
+#endif
+            *controllerType = DEVICE_SWITCH_PRO;
+            return true;
+
+        case SDL_CONTROLLER_TYPE_XBOX360:
+        case SDL_CONTROLLER_TYPE_XBOXONE:
+#if SDL_VERSION_ATLEAST(2, 0, 16)
+        case SDL_CONTROLLER_TYPE_AMAZON_LUNA:
+        case SDL_CONTROLLER_TYPE_GOOGLE_STADIA:
+#endif
+#if SDL_VERSION_ATLEAST(2, 24, 0)
+        case SDL_CONTROLLER_TYPE_NVIDIA_SHIELD:
+#endif
+            *controllerType = DEVICE_XBOX;
+            return true;
+
+        default: break;
+    }
+#endif
+    return false;
+}
+
+#if RETRO_INPUTDEVICE_XINPUT
+// Whether the engine's XInput support already handles this controller (an XInput device:
+// Xbox controllers and the many controllers that act as one), so SDL must leave it alone.
+static bool32 IsXInputController(int32 joystickIndex)
+{
+    SDL_JoystickGUID guid = SDL_JoystickGetDeviceGUID(joystickIndex);
+    if (guid.data[14] == 'x') // SDL 2.24+: the driver's signature
+        return true;
+    if (memcmp(guid.data, "xinput", 6) == 0) // older SDL versions
+        return true;
+
+#if SDL_VERSION_ATLEAST(2, 0, 12)
+    SDL_GameControllerType type = SDL_GameControllerTypeForIndex(joystickIndex);
+    return type == SDL_CONTROLLER_TYPE_XBOX360 || type == SDL_CONTROLLER_TYPE_XBOXONE;
+#else
+    return false;
+#endif
+}
+#endif
+
+void RSDK::SKU::AddSDL2Controller(int32 joystickIndex)
+{
+#if RETRO_INPUTDEVICE_XINPUT
+    if (IsXInputController(joystickIndex))
+        return;
+#endif
+
+    SDL_GameController *gameController = SDL_GameControllerOpen(joystickIndex);
+    if (gameController == NULL)
+        return;
+
+    uint32 id;
+    char idBuffer[0x20];
+    sprintf_s(idBuffer, sizeof(idBuffer), "SDLDevice%d", SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(gameController)));
+    GenerateHashCRC(&id, idBuffer);
+
+    if (InitSDL2InputDevice(id, gameController) == NULL) {
+        SDL_GameControllerClose(gameController);
+        return;
+    }
+
+    const char *name = SDL_GameControllerName(gameController);
+    PrintLog(PRINT_NORMAL, "Controller connected: %s", name ? name : "(unnamed)");
+}
+
+void RSDK::SKU::RemoveSDL2Controller(int32 instanceID)
+{
+    uint32 id;
+    char idBuffer[0x20];
+    sprintf_s(idBuffer, sizeof(idBuffer), "SDLDevice%d", instanceID);
+    GenerateHashCRC(&id, idBuffer);
+
+    RemoveInputDevice(InputDeviceFromID(id));
+}
+
+#if !RETRO_RENDERDEVICE_SDL2
+void RSDK::SKU::ProcessSDL2InputEvents()
+{
+    // Updates the controllers' state and queues their connection events.
+    SDL_PumpEvents();
+
+    // Only controller events reach this queue without an SDL window; anything else is dropped.
+    SDL_Event events[16];
+    int32 count;
+    while ((count = SDL_PeepEvents(events, 16, SDL_GETEVENT, SDL_FIRSTEVENT, SDL_LASTEVENT)) > 0) {
+        for (int32 e = 0; e < count; ++e) {
+            switch (events[e].type) {
+                case SDL_CONTROLLERDEVICEADDED: AddSDL2Controller(events[e].cdevice.which); break;
+                case SDL_CONTROLLERDEVICEREMOVED: RemoveSDL2Controller(events[e].cdevice.which); break;
+                default: break;
+            }
+        }
+    }
+}
+#endif
+#endif // !RETRO_USE_ORIGINAL_CODE
+
 void RSDK::SKU::InitSDL2InputAPI()
 {
+#if !RETRO_USE_ORIGINAL_CODE
+    // (Plus) Buttons by position, not by the letter printed on them: SDL's "A" is always the bottom
+    // face button. Nintendo controllers then get their own layout through swapABXY, as above
+    // (with labels, SDL would already have swapped them, and swapABXY would undo it).
+#ifdef SDL_HINT_GAMECONTROLLER_USE_BUTTON_LABELS
+    SDL_SetHint(SDL_HINT_GAMECONTROLLER_USE_BUTTON_LABELS, "0");
+#endif
+
+#if !RETRO_RENDERDEVICE_SDL2
+    // Without an SDL window, SDL finds controllers being plugged in on a thread of its own.
+    SDL_SetHint(SDL_HINT_JOYSTICK_THREAD, "1");
+#endif
+
+#if RETRO_INPUTDEVICE_RAWINPUT
+    // The engine registers for the Raw Input of gamepads itself, and Windows keeps only one
+    // registration per process: SDL's would take it away.
+    SDL_SetHint(SDL_HINT_JOYSTICK_RAWINPUT, "0");
+#endif
+
+#if RETRO_INPUTDEVICE_XINPUT
+    // Xbox controllers stay with the engine's XInput support (see IsXInputController()).
+    SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_XBOX, "0");
+#endif
+#endif
+
     SDL_InitSubSystem(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC);
 
     char path[0x100]; 

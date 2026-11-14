@@ -344,6 +344,10 @@ void RSDK::ProcessInput()
 
 void RSDK::ProcessInputDevices()
 {
+#if RETRO_INPUTDEVICE_SDL2 && !RETRO_RENDERDEVICE_SDL2 && !RETRO_USE_ORIGINAL_CODE
+    // (Plus) SDL controllers next to another renderer (DirectX on Windows).
+    SKU::ProcessSDL2InputEvents();
+#endif
 #if RETRO_INPUTDEVICE_NX
     SKU::ProcessNXInputDevices();
 #endif
