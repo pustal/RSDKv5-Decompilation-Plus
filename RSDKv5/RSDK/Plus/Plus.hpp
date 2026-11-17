@@ -92,6 +92,15 @@ void ShareInputWithPlayer1();
 /** True when a game switch chosen in the Plus menu waits to be applied (outside the menu). */
 bool32 SwitchPending();
 
+/**
+ * Called at the start of each frame, after the window's events: switches
+ * between windowed and full screen when the Plus menu asked for it (Settings,
+ * Display), the way Alt+Enter does, and saves the choice in Settings.ini.
+ * Done here rather than in the menu, which runs while a frame is being drawn.
+ * Does nothing on platforms without a window (consoles, phones, TVs).
+ */
+void ApplyPendingWindowMode();
+
 /** Swaps the packs and re-initialises the engine for the chosen game (Plus.cpp). */
 void ApplyPendingSwitch();
 

@@ -114,6 +114,10 @@ int32 RSDK::RunRetroEngine(int32 argc, char *argv[])
 
     while (RenderDevice::isRunning) {
         RenderDevice::ProcessEvents();
+#if RETRO_USE_PLUS
+        // (Plus) Windowed or full screen, as chosen in the Plus menu.
+        RSDK::Plus::ApplyPendingWindowMode();
+#endif
 
         if (!RenderDevice::isRunning)
             break;

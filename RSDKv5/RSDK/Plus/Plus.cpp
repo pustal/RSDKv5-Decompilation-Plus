@@ -97,6 +97,24 @@ bool RemixesEnabled() { return plus.config.maniaAudio && plus.config.maniaRemixe
 #define PLUS_TOUCH_CONTROLS (RETRO_PLATFORM == RETRO_ANDROID)
 #endif
 constexpr bool TouchControlsAvailable() { return PLUS_TOUCH_CONTROLS; }
+/**
+ * Whether the game can run in a window or full screen: the desktop builds
+ * (Windows, macOS, Linux). Consoles, phones and TVs always fill the screen.
+ */
+constexpr bool WindowModeAvailable()
+{
+    return RETRO_PLATFORM == RETRO_WIN || RETRO_PLATFORM == RETRO_OSX || RETRO_PLATFORM == RETRO_LINUX;
+}
+/** True when the game fills the screen rather than running in a window. */
+bool FullScreen() { return !videoSettings.windowed; }
+/** Set by the Plus menu, applied by ApplyPendingWindowMode() at the start of the next frame. */
+bool windowModeTogglePending = false;
+/** Asks for the switch between windowed and full screen (see ApplyPendingWindowMode()). */
+void RequestWindowModeToggle()
+{
+    if (WindowModeAvailable())
+        windowModeTogglePending = true;
+}
 bool TouchControlsShown() { return plus.config.touchControls; }
 int32 TouchOpacity() { return plus.config.touchOpacity; }
 int32 Coins() { return plus.config.coins; }
@@ -238,6 +256,19 @@ void RequestSwitch(const std::string &id) { plus.pendingSwitch = id; }
  * built with RSDK_AUTOBUILD (CMake RETRO_DISABLE_PLUS), which forces them off.
  */
 constexpr bool PlusDLCAvailable() { return !RSDK_AUTOBUILD; }
+
+void ApplyPendingWindowMode()
+{
+    if (!windowModeTogglePending)
+        return;
+    windowModeTogglePending = false;
+    // As Alt+Enter does (RenderDevice::ProcessEvents()), and remembered in Settings.ini.
+    videoSettings.windowed ^= 1;
+    UpdateGameWindow();
+    changedVideoSettings = false;
+    SaveSettingsINI(true);
+    Notify(videoSettings.windowed ? "Windowed" : "Full screen");
+}
 
 /**
  * Turns the official Plus DLCs (Sonic Mania Plus, Sonic Origins Plus) on or

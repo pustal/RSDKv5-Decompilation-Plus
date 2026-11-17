@@ -408,6 +408,7 @@ enum SettingsItem {
     SETTING_REMIXES,
     SETTING_TOUCHCONTROLS,
     SETTING_TOUCHOPACITY,
+    SETTING_DISPLAY,
     SETTING_BACK,
 };
 
@@ -419,6 +420,8 @@ std::vector<SettingsItem> SettingsItems()
         items.push_back(SETTING_TOUCHCONTROLS);
         items.push_back(SETTING_TOUCHOPACITY);
     }
+    if (WindowModeAvailable())
+        items.push_back(SETTING_DISPLAY);
     items.push_back(SETTING_BACK);
     return items;
 }
@@ -459,6 +462,7 @@ void Page_Settings()
             case SETTING_REMIXES: items.push_back(std::string("Sonic Mania remixes: ") + OnOff(RemixesEnabled())); break;
             case SETTING_TOUCHCONTROLS: items.push_back(std::string("Touch controls: ") + OnOff(TouchControlsShown())); break;
             case SETTING_TOUCHOPACITY: items.push_back("Touch controls opacity: " + std::to_string(TouchOpacity()) + "%"); break;
+            case SETTING_DISPLAY: items.push_back(std::string("Display: ") + (FullScreen() ? "Full screen" : "Windowed")); break;
             case SETTING_BACK: items.push_back("Back"); break;
         }
         // The music options need Sonic Mania's audio.
@@ -509,6 +513,7 @@ void Page_Settings()
             break;
         case SETTING_TOUCHCONTROLS: note = "A pad and buttons over the game. The button at the top right also shows and hides them."; break;
         case SETTING_TOUCHOPACITY: note = "Left and right change it; at 0% the controls still work, unseen."; break;
+        case SETTING_DISPLAY: note = "Switches between a window and the whole screen, and remembers it. Alt+Enter switches too."; break;
         case SETTING_BACK: break;
     }
     y = DrawNote(note, y, kItemColor);
@@ -563,6 +568,7 @@ void Page_Settings()
             break;
         case SETTING_TOUCHCONTROLS: SetTouchControlsShown(!TouchControlsShown()); break;
         case SETTING_TOUCHOPACITY: StepTouchOpacity(input.left ? -1 : 1); break;
+        case SETTING_DISPLAY: RequestWindowModeToggle(); break;
         case SETTING_PLUSDLC:
         case SETTING_ORIGINSAUDIO:
         case SETTING_ORIGINSVIDEO:

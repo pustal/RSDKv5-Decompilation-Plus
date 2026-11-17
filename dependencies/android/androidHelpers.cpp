@@ -81,7 +81,11 @@ int32 AndroidToWinAPIMappings(int32 mapping)
         case AKEYCODE_DPAD_DOWN: return VK_DOWN;
         case AKEYCODE_DPAD_LEFT: return VK_LEFT;
         case AKEYCODE_DPAD_RIGHT: return VK_RIGHT;
-        case AKEYCODE_DPAD_CENTER: return VK_SELECT;
+        // (Plus) A TV remote: OK jumps and confirms (A), Back goes back (B; it no
+        // longer leaves the game: Home does), Play/Pause pauses (Start) and the
+        // menu key opens the Plus menu (Select). The arrows above move.
+        case AKEYCODE_DPAD_CENTER: return VK_A;
+        case AKEYCODE_BACK: return VK_S;
         // case AKEYCODE_VOLUME_UP: return VK_VOLUME_UP;
         // case AKEYCODE_VOLUME_DOWN: return VK_VOLUME_DOWN;
         case AKEYCODE_CLEAR: return VK_CLEAR;
@@ -122,8 +126,10 @@ int32 AndroidToWinAPIMappings(int32 mapping)
         case AKEYCODE_ENVELOPE: return VK_LAUNCH_MAIL;
         case AKEYCODE_ENTER: return VK_RETURN;
         case AKEYCODE_MINUS: return VK_OEM_MINUS;
-        case AKEYCODE_MENU: return VK_MENU;
-        case AKEYCODE_MEDIA_PLAY_PAUSE: return VK_MEDIA_PLAY_PAUSE;
+        case AKEYCODE_MENU: return VK_TAB;
+        case AKEYCODE_MEDIA_PLAY_PAUSE:
+        case AKEYCODE_MEDIA_PLAY:
+        case AKEYCODE_MEDIA_PAUSE: return VK_RETURN;
         case AKEYCODE_MEDIA_STOP: return VK_MEDIA_STOP;
         case AKEYCODE_MEDIA_NEXT: return VK_MEDIA_NEXT_TRACK;
         case AKEYCODE_MEDIA_PREVIOUS: return VK_MEDIA_PREV_TRACK;

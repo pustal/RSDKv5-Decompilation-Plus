@@ -37,7 +37,7 @@ A: Submit an issue in [this fork's Issues tab](https://github.com/pustal/RSDKv5-
 
 # The Plus menu and the retro games
 ### Q: How do I open the Plus menu?
-A: Press **Select** in any game: Tab on a keyboard, Minus on the Wii, Wii U and Switch, SELECT on the Vita, Z on a GameCube controller, MENU in Android's touch controls. On the developer menu's controller debugging, Select is taken, so the Plus menu does not open.
+A: Press **Select** in any game: Tab on a keyboard, Minus on the Wii, Wii U and Switch, SELECT on the Vita, Z on a GameCube controller, MENU in Android's touch controls, the menu key on an Android TV remote. On the developer menu's controller debugging, Select is taken, so the Plus menu does not open.
 
 ### Q: Where do the retro games' packs go, and under which names?
 A: In a `retro` folder next to Sonic Mania's `Data.rsdk`: `sonic1-origins.rsdk`, `sonic2-origins.rsdk` and `soniccd-origins.rsdk` from Sonic Origins, and `sonic1-classic.rsdk`, `sonic2-classic.rsdk` and `soniccd-classic.rsdk` from the earlier releases. [The README](README.md#plus-retro-games-next-to-sonic-mania) says where each one comes from. The Plus menu's Games page shows what each game will play with.

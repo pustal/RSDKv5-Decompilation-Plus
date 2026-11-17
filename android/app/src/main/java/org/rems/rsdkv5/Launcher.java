@@ -2,6 +2,7 @@ package org.rems.rsdkv5;
 
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.UriPermission;
@@ -52,6 +53,12 @@ public class Launcher extends AppCompatActivity {
                 result -> {
                     if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
                         basePath = result.getData().getData();
+                    }
+                    // (Plus) Nothing picked and no folder before: ask again
+                    // instead of starting without a folder.
+                    if (basePath == null) {
+                        startGame(false);
+                        return;
                     }
                     try {
                         Log.i("hi", String.format("%d", getContentResolver().openInputStream(
@@ -108,7 +115,7 @@ public class Launcher extends AppCompatActivity {
         public void onTick(long l) {
             alert.setMessage(String.format(
                     "Game will start in %s in %d seconds...",
-                    basePath.getPath(),
+                    describe(alert.getContext(), basePath),
                     TimeUnit.MILLISECONDS.toSeconds(l) + 1));
         }
 
@@ -148,8 +155,9 @@ public class Launcher extends AppCompatActivity {
 
         refreshStore();
 
-        boolean found = false;
-        if (basePath != null) {
+        // (Plus) The app's own folder needs no permission from the system.
+        boolean found = isAppFolder(basePath);
+        if (basePath != null && !found) {
             for (UriPermission uriPermission : getContentResolver().getPersistedUriPermissions()) {
                 if (uriPermission.getUri().toString().matches(basePath.toString())) {
                     found = true;
@@ -170,6 +178,9 @@ public class Launcher extends AppCompatActivity {
                         dialog.cancel();
                         quit(3);
                     })
+                    // (Plus) For devices without a folder picker (many
+                    // Android TVs), or to keep the game in the app's folder.
+                    .setNeutralButton("App folder", (dialog, i) -> useAppFolder(false))
                     .setCancelable(false)
                     .show();
         } else {
@@ -192,15 +203,19 @@ public class Launcher extends AppCompatActivity {
 
                         Intent intent = new Intent(this, RSDK.class);
                         intent.setData(basePath);
-                        intent.setFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION |
-                                Intent.FLAG_GRANT_READ_URI_PERMISSION |
-                                Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-                        grantUriPermission(getApplicationContext().getPackageName() + ".RSDK", basePath,
-                                Intent.FLAG_GRANT_WRITE_URI_PERMISSION |
-                                        Intent.FLAG_GRANT_READ_URI_PERMISSION |
-                                        Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+                        // (Plus) The app's own folder is the app's: there is
+                        // no permission to grant or keep for it.
+                        if (!isAppFolder(basePath)) {
+                            intent.setFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION |
+                                    Intent.FLAG_GRANT_READ_URI_PERMISSION |
+                                    Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+                            grantUriPermission(getApplicationContext().getPackageName() + ".RSDK", basePath,
+                                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION |
+                                            Intent.FLAG_GRANT_READ_URI_PERMISSION |
+                                            Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
 
-                        getContentResolver().takePersistableUriPermission(basePath, takeFlags);
+                            getContentResolver().takePersistableUriPermission(basePath, takeFlags);
+                        }
 
                         instance = this;
 
@@ -208,7 +223,8 @@ public class Launcher extends AppCompatActivity {
                     })
                     .setNeutralButton("Change Path", (dialog, i) -> {
                         timer.cancel();
-                        getContentResolver().releasePersistableUriPermission(basePath, takeFlags);
+                        if (!isAppFolder(basePath))
+                            getContentResolver().releasePersistableUriPermission(basePath, takeFlags);
                         folderPicker();
                     })
                     .create();
@@ -222,12 +238,60 @@ public class Launcher extends AppCompatActivity {
 
     private void folderPicker() {
         refreshStore();
-        folderLauncher.launch(
-                new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
-                        .putExtra(DocumentsContract.EXTRA_INITIAL_URI, basePath)
-                        .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION |
-                                Intent.FLAG_GRANT_READ_URI_PERMISSION |
-                                Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION));
+        Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+                .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION |
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION |
+                        Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+        if (basePath != null && !isAppFolder(basePath))
+            picker.putExtra(DocumentsContract.EXTRA_INITIAL_URI, basePath);
+        // (Plus) Many Android TVs have no folder picker: use the app's folder.
+        try {
+            folderLauncher.launch(picker);
+        } catch (ActivityNotFoundException e) {
+            useAppFolder(true);
+        }
+    }
+
+    /** (Plus) Whether @p uri is the app's own folder (GameFolderProvider). */
+    private static boolean isAppFolder(@Nullable Uri uri) {
+        return uri != null && GameFolderProvider.AUTHORITY.equals(uri.getAuthority());
+    }
+
+    /** (Plus) A readable name of the folder @p uri, for the dialogs. */
+    private static String describe(Context context, Uri uri) {
+        if (isAppFolder(uri))
+            return GameFolderProvider.folder(context).getAbsolutePath();
+        return uri.getPath();
+    }
+
+    /**
+     * (Plus) Runs the game in the app's own folder (GameFolderProvider), first
+     * saying where it is and how to put the game's files there.
+     *
+     * @param noPicker true when this device has no folder picker.
+     */
+    private void useAppFolder(boolean noPicker) {
+        String folder = GameFolderProvider.folder(this).getAbsolutePath();
+        String message = (noPicker ? "This device has no folder picker, so the game runs in its own folder:\n\n"
+                : "The game runs in its own folder:\n\n")
+                + folder + "\n\n"
+                + "Put Data.rsdk (and any other files the game uses, such as mods) there, for example with "
+                + "\"adb push Data.rsdk " + folder + "/\" from a computer. Android removes this folder "
+                + "with the app.";
+        new AlertDialog.Builder(this)
+                .setTitle("Game folder")
+                .setMessage(message)
+                .setPositiveButton("OK", (dialog, i) -> {
+                    basePath = GameFolderProvider.treeUri();
+                    refreshStore();
+                    startGame(true);
+                })
+                .setNegativeButton("Cancel", (dialog, i) -> {
+                    dialog.cancel();
+                    quit(3);
+                })
+                .setCancelable(false)
+                .show();
     }
 
     public Uri createFile(String filename) throws FileNotFoundException {
