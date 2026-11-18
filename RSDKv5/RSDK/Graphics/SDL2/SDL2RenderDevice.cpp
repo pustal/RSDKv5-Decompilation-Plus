@@ -393,8 +393,7 @@ void RenderDevice::RefreshWindow()
         SDL_SetWindowBordered(window, SDL_FALSE);
 
 #if RETRO_RESIZABLE_WINDOW
-    // (Plus) Resizable in the bordered windowed mode only, and back from a maximised window.
-    ApplyResizable();
+    // (Plus) Back from a maximised window (resizable or not is set below, out of fullscreen).
     if (SDL_GetWindowFlags(window) & SDL_WINDOW_MAXIMIZED)
         SDL_RestoreWindow(window);
 #endif
@@ -410,6 +409,13 @@ void RenderDevice::RefreshWindow()
         SDL_GetCurrentDisplayMode(currentWindowDisplay, &displayMode);
 
         if (videoSettings.windowed) {
+#if RETRO_RESIZABLE_WINDOW
+            // (Plus) Out of fullscreen into a window still at 1x (the game started in
+            // fullscreen): the same comfortable size as a windowed start.
+            SDL_Rect usable;
+            if (SDL_GetDisplayUsableBounds(currentWindowDisplay, &usable) == 0)
+                ResizableWindow::FitStartupWindowSize(usable.w, usable.h);
+#endif
             if (videoSettings.windowWidth >= displayMode.w || videoSettings.windowHeight >= displayMode.h) {
                 videoSettings.windowWidth  = (displayMode.h / 480 * videoSettings.pixWidth);
                 videoSettings.windowHeight = displayMode.h / 480 * videoSettings.pixHeight;
@@ -430,6 +436,13 @@ void RenderDevice::RefreshWindow()
         SDL_SetWindowSize(window, winRect.w, winRect.h);
         SDL_SetWindowPosition(window, winRect.x, winRect.y);
     }
+
+#if RETRO_RESIZABLE_WINDOW
+    // (Plus) Resizable in the bordered windowed mode only. Only once out of fullscreen: SDL
+    // ignores the change for a fullscreen window, which would stay fixed after Alt+Enter or the
+    // Plus menu's Display setting brought it back from fullscreen.
+    ApplyResizable();
+#endif
 
     SDL_ShowWindow(window);
 
