@@ -95,8 +95,11 @@ void openURL(const char *url)
     @autoreleasepool
     {
         NSURL *address = [NSURL URLWithString:[NSString stringWithUTF8String:url]];
-        if (address)
-            [[NSWorkspace sharedWorkspace] openURL:address];
+        // NSWorkspace is AppKit's, which the app does not link itself (SDL loads it): it is looked
+        // up by name, so linking needs no AppKit symbol.
+        Class workspaceClass = NSClassFromString(@"NSWorkspace");
+        if (address && workspaceClass)
+            [(NSWorkspace *)[workspaceClass sharedWorkspace] openURL:address];
     }
 }
 
