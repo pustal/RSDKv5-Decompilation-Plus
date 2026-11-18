@@ -11,4 +11,16 @@ const char* getResourcesPath(void);
  */
 const char* getAppFolderPath(void);
 
+/**
+ * (Plus) Takes macOS's own full screen (a Space of its own, from the title
+ * bar's green button or the View menu) away from @p nsWindow, an NSWindow, so
+ * the green button zooms it instead. macOS offers that full screen to every
+ * resizable window, but SDL and the game would not know the window is in it:
+ * the Plus menu would still say "Windowed", and SDL crashes when asked for its
+ * own full screen from there. Full screen stays on Alt+Enter and the Plus
+ * menu's Display setting. Call on the main thread, after the window is made
+ * resizable.
+ */
+void disableNativeFullScreen(void *nsWindow);
+
 #endif

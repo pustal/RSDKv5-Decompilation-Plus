@@ -1,4 +1,9 @@
 
+#if RETRO_RESIZABLE_WINDOW && RETRO_PLATFORM == RETRO_OSX
+// (Plus) The window's NSWindow, to take macOS's own full screen away from it (ApplyResizable()).
+#include <SDL2/SDL_syswm.h>
+#endif
+
 SDL_Window *RenderDevice::window     = nullptr;
 SDL_Renderer *RenderDevice::renderer = nullptr;
 SDL_Texture *RenderDevice::screenTexture[SCREEN_COUNT];
@@ -67,6 +72,7 @@ bool RenderDevice::Init()
 #if RETRO_PLATFORM == RETRO_OSX
     // (Plus) The green button zooms the window instead of moving it to its own Space, where the
     // game would still think it is windowed; full screen stays on Alt+Enter and the Plus menu.
+    // This keeps SDL itself out of Spaces; ApplyResizable() keeps macOS from offering them.
     SDL_SetHint(SDL_HINT_VIDEO_MAC_FULLSCREEN_SPACES, "0");
 #endif
     // (Plus) Start larger than the 1x default when the screen has room for it, resizable.
@@ -639,6 +645,16 @@ void RenderDevice::ApplyResizable()
 {
     SDL_SetWindowResizable(window, ResizableWindow::Resizable() ? SDL_TRUE : SDL_FALSE);
     SDL_SetWindowMinimumSize(window, videoSettings.pixWidth, videoSettings.pixHeight);
+
+#if RETRO_PLATFORM == RETRO_OSX
+    // macOS offers its own full screen (a Space) to every resizable window, from the green button:
+    // the game would not know it is in it, and SDL crashes when asked for its full screen from
+    // there. Without it the green button zooms (see cocoaHelpers.mm).
+    SDL_SysWMinfo info;
+    SDL_VERSION(&info.version);
+    if (SDL_GetWindowWMInfo(window, &info) && info.subsystem == SDL_SYSWM_COCOA)
+        disableNativeFullScreen((void *)info.info.cocoa.window);
+#endif
 }
 
 void RenderDevice::ApplyWindowResize()

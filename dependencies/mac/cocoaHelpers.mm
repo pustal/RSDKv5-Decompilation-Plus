@@ -1,6 +1,7 @@
 #ifdef __APPLE__
 
 #import <Foundation/Foundation.h>
+#import <AppKit/AppKit.h>
 #include "cocoaHelpers.hpp"
 
 #include <string.h>
@@ -36,6 +37,22 @@ const char* getAppFolderPath(void)
     @autoreleasepool
     {
         return copyPath([[[NSBundle mainBundle] bundlePath] stringByDeletingLastPathComponent], buffer, sizeof(buffer));
+    }
+}
+
+void disableNativeFullScreen(void *nsWindow)
+{
+    if (!nsWindow)
+        return;
+
+    @autoreleasepool
+    {
+        NSWindow *window = (__bridge NSWindow *)nsWindow;
+
+        NSWindowCollectionBehavior behavior = [window collectionBehavior];
+        behavior &= ~(NSWindowCollectionBehaviorFullScreenPrimary | NSWindowCollectionBehaviorFullScreenAuxiliary);
+        behavior |= NSWindowCollectionBehaviorFullScreenNone;
+        [window setCollectionBehavior:behavior];
     }
 }
 #endif
