@@ -167,6 +167,9 @@ void RSDK::FitImageQuad(RenderVertex *vertices, int32 vertexCount)
 #include "WindowIcon.hpp"
 #endif
 
+// (Plus) What the SDL2 and GLFW renderers' resizable window shares.
+#include "ResizableWindow.hpp"
+
 #if RETRO_RENDERDEVICE_DIRECTX9
 #include "DX9/DX9RenderDevice.cpp"
 #elif RETRO_RENDERDEVICE_DIRECTX11

@@ -13,7 +13,7 @@ Put these in this folder (Git ignores them):
   bash build-frameworks.sh
   ```
 
-  It builds `libogg/macosx/Ogg.framework` and `libtheora/macosx/Theora.framework`, where the Xcode project looks for them, with Xcode's own compiler (no CMake or Homebrew needed): universal (Apple Silicon and Intel), macOS 12 or later, loading from the app's `Frameworks` folder.
+  It builds `libogg/macosx/Ogg.framework` and `libtheora/macosx/Theora.framework`, where the Xcode project looks for them, with Xcode's own compiler (no CMake or Homebrew needed): universal (Apple Silicon and Intel), macOS 12 or later, loading from the app's `Frameworks` folder. Theora.framework includes Theora's encoder, which the Plus menu's **Convert Sonic Origins videos** uses together with libvpx's VP9 decoder (its sources are in `dependencies/all/libvpx` and in the Xcode project: nothing to install). Frameworks built by an earlier version of the script have the encoder too.
 
 ## Compiling
 

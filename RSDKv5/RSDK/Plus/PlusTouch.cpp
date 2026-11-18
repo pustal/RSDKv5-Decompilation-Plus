@@ -14,9 +14,11 @@
 //     and for the Plus menu (ApplyTouchControls(), called by ProcessInput());
 //   - their opacity is a setting (Plus menu > Settings); at 0% they still
 //     work, unseen.
-// Whether they are shown and their opacity are kept in Plus.ini. Touches are
-// left in touchInfo for the games too (the earlier releases' mobile scripts
-// have their own touch controls).
+// Whether they are shown and their opacity are kept in Plus.ini. Touches stay
+// in touchInfo for the engine and the retro games (the earlier releases'
+// mobile scripts have their own touch controls); the RSDKv5 game (Sonic Mania)
+// sees them without those on the controls (GameTouchInfo()), as its menus take
+// every touch as a tap on them.
 //
 // Coordinates are the game's screen pixels (touchInfo holds fractions of it).
 
@@ -84,6 +86,20 @@ struct TouchState {
 };
 
 TouchState touch;
+
+/** The touches the RSDKv5 game sees (GameTouchInfo()), rebuilt every frame. */
+TouchInfo gameTouches;
+
+/** Adds touch @p t of touchInfo to gameTouches (packed: the game reads every touch below its count). */
+void PassTouchToGame(int32 t)
+{
+    if (gameTouches.count >= 0x10)
+        return;
+    gameTouches.x[gameTouches.count]    = touchInfo.x[t];
+    gameTouches.y[gameTouches.count]    = touchInfo.y[t];
+    gameTouches.down[gameTouches.count] = true;
+    ++gameTouches.count;
+}
 
 /** The controls' layout on screen 0, scaled with its height (240 pixels: a 40-pixel pad). */
 TouchLayout CurrentTouchLayout()
@@ -217,10 +233,16 @@ void DrawTouchControls()
 } // namespace Plus
 } // namespace RSDK
 
+TouchInfo *RSDK::Plus::GameTouchInfo() { return TouchControlsAvailable() ? &gameTouches : &touchInfo; }
+
 void RSDK::Plus::ApplyTouchControls()
 {
     if (!TouchControlsAvailable())
         return;
+
+    // Copied from touchInfo, without its touches: those not on the controls are added back below.
+    gameTouches       = touchInfo;
+    gameTouches.count = 0;
 
     const TouchLayout layout = CurrentTouchLayout();
     const int32 w            = screens[0].size.x;
@@ -239,8 +261,10 @@ void RSDK::Plus::ApplyTouchControls()
             onToggle = true;
             continue;
         }
-        if (!shown)
+        if (!shown) {
+            PassTouchToGame(t);
             continue;
+        }
         if (layout.pad.Contains(x, y, 150))
             PadDirections(x - layout.pad.x, y - layout.pad.y, layout.pad.r, &keys);
         else if (layout.a.Contains(x, y, 135))
@@ -251,6 +275,8 @@ void RSDK::Plus::ApplyTouchControls()
             keys.start = true;
         else if (layout.select.Contains(x, y, 6))
             keys.select = true;
+        else
+            PassTouchToGame(t);
     }
 
     // The PAD button toggles once per touch, and shows again for a while.

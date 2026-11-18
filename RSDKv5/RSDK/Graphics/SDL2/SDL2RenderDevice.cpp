@@ -29,7 +29,7 @@ bool RenderDevice::Init()
 
     SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
 
-    uint8 flags = 0;
+    uint32 flags = 0;
 
 #if RETRO_PLATFORM == RETRO_ANDROID
     videoSettings.windowed = false;
@@ -63,6 +63,20 @@ bool RenderDevice::Init()
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
     SDL_SetHint(SDL_HINT_RENDER_VSYNC, videoSettings.vsync ? "1" : "0");
 
+#if RETRO_RESIZABLE_WINDOW
+#if RETRO_PLATFORM == RETRO_OSX
+    // (Plus) The green button zooms the window instead of moving it to its own Space, where the
+    // game would still think it is windowed; full screen stays on Alt+Enter and the Plus menu.
+    SDL_SetHint(SDL_HINT_VIDEO_MAC_FULLSCREEN_SPACES, "0");
+#endif
+    // (Plus) Start larger than the 1x default when the screen has room for it, resizable.
+    SDL_Rect usable;
+    if (SDL_GetDisplayUsableBounds(0, &usable) == 0)
+        ResizableWindow::FitStartupWindowSize(usable.w, usable.h);
+    if (ResizableWindow::Resizable())
+        flags |= SDL_WINDOW_RESIZABLE;
+#endif
+
     window = SDL_CreateWindow(gameTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, videoSettings.windowWidth, videoSettings.windowHeight,
                               SDL_WINDOW_ALLOW_HIGHDPI | flags);
 
@@ -70,6 +84,10 @@ bool RenderDevice::Init()
         PrintLog(PRINT_NORMAL, "ERROR: failed to create window!");
         return false;
     }
+
+#if RETRO_RESIZABLE_WINDOW
+    ApplyResizable();
+#endif
 
 #if RETRO_PLATFORM == RETRO_LINUX && !RETRO_USE_ORIGINAL_CODE
     // (Plus) The window's icon: Linux executables carry none (see WindowIcon.hpp).
@@ -374,6 +392,13 @@ void RenderDevice::RefreshWindow()
     else
         SDL_SetWindowBordered(window, SDL_FALSE);
 
+#if RETRO_RESIZABLE_WINDOW
+    // (Plus) Resizable in the bordered windowed mode only, and back from a maximised window.
+    ApplyResizable();
+    if (SDL_GetWindowFlags(window) & SDL_WINDOW_MAXIMIZED)
+        SDL_RestoreWindow(window);
+#endif
+
     GetDisplays();
 
     SDL_Rect winRect;
@@ -475,8 +500,21 @@ bool RenderDevice::InitGraphicsAPI()
     viewSize.x = 0;
     viewSize.y = 0;
 
+#if RETRO_RESIZABLE_WINDOW
+    // (Plus) Rebuilding for a resized window: draw for the size it has, and leave it where it is.
+    const bool32 followingResize = videoSettings.windowed && ResizableWindow::Sizing().following;
+#else
+    const bool32 followingResize = false;
+#endif
+
     if (videoSettings.windowed || !videoSettings.exclusiveFS) {
-        if (videoSettings.windowed) {
+        if (followingResize) {
+            int32 width = 0, height = 0;
+            SDL_GetWindowSize(window, &width, &height);
+            viewSize.x = width;
+            viewSize.y = height;
+        }
+        else if (videoSettings.windowed) {
             viewSize.x = videoSettings.windowWidth;
             viewSize.y = videoSettings.windowHeight;
         }
@@ -497,8 +535,10 @@ bool RenderDevice::InitGraphicsAPI()
         viewSize.y = bufferHeight;
     }
 
-    SDL_SetWindowSize(window, viewSize.x, viewSize.y);
-    SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+    if (!followingResize) {
+        SDL_SetWindowSize(window, viewSize.x, viewSize.y);
+        SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+    }
 
     int32 maxPixHeight = 0;
 #if !RETRO_USE_ORIGINAL_CODE
@@ -572,8 +612,45 @@ bool RenderDevice::InitGraphicsAPI()
     videoSettings.viewportW = 1.0 / viewSize.x;
     videoSettings.viewportH = 1.0 / viewSize.y;
 
+#if RETRO_RESIZABLE_WINDOW
+    int32 builtWidth = 0, builtHeight = 0;
+    SDL_GetWindowSize(window, &builtWidth, &builtHeight);
+    ResizableWindow::NoteAppliedSize(builtWidth, builtHeight);
+#endif
+
     return true;
 }
+
+#if RETRO_RESIZABLE_WINDOW
+void RenderDevice::ApplyResizable()
+{
+    SDL_SetWindowResizable(window, ResizableWindow::Resizable() ? SDL_TRUE : SDL_FALSE);
+    SDL_SetWindowMinimumSize(window, videoSettings.pixWidth, videoSettings.pixHeight);
+}
+
+void RenderDevice::ApplyWindowResize()
+{
+    int32 width = 0, height = 0;
+    SDL_GetWindowSize(window, &width, &height);
+    const bool restored = !(SDL_GetWindowFlags(window) & (SDL_WINDOW_MAXIMIZED | SDL_WINDOW_MINIMIZED | SDL_WINDOW_FULLSCREEN));
+    if (!ResizableWindow::TakeNewSize(width, height, restored))
+        return;
+
+    PrintLog(PRINT_NORMAL, "Window resized to %dx%d", width, height);
+
+    // Rebuild the textures for the new size, as RefreshWindow() does, without moving the window.
+    videoSettings.windowState          = WINDOWSTATE_UNINITIALIZED;
+    ResizableWindow::Sizing().following = true;
+    Release(true);
+    const bool rebuilt                  = InitGraphicsAPI() && InitShaders();
+    ResizableWindow::Sizing().following = false;
+    if (!rebuilt) {
+        PrintLog(PRINT_NORMAL, "Could not rebuild the renderer for the new window size");
+        return;
+    }
+    videoSettings.windowState = WINDOWSTATE_ACTIVE;
+}
+#endif
 
 void RenderDevice::LoadShader(const char *fileName, bool32 linear) { PrintLog(PRINT_NORMAL, "This render device does not support shaders!"); }
 
@@ -722,12 +799,26 @@ void RenderDevice::ProcessEvent(SDL_Event event)
         case SDL_WINDOWEVENT:
             switch (event.window.event) {
                 case SDL_WINDOWEVENT_MAXIMIZED: {
+#if RETRO_RESIZABLE_WINDOW
+                    // (Plus) A resizable window simply maximises (its new size follows below).
+                    if (ResizableWindow::Resizable())
+                        break;
+#endif
                     SDL_RestoreWindow(window);
                     SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
                     SDL_ShowCursor(SDL_FALSE);
                     videoSettings.windowed = false;
                     break;
                 }
+
+#if RETRO_RESIZABLE_WINDOW
+                case SDL_WINDOWEVENT_SIZE_CHANGED:
+                    // (Plus) Rebuild once this frame's events are handled (see ProcessEvents()), as
+                    // dragging the frame sends many of these.
+                    if (ResizableWindow::ShouldFollowSize())
+                        ResizableWindow::Sizing().resizePending = true;
+                    break;
+#endif
 
                 case SDL_WINDOWEVENT_CLOSE: isRunning = false; break;
 
@@ -1076,6 +1167,14 @@ bool RenderDevice::ProcessEvents()
         if (!isRunning)
             return false;
     }
+
+#if RETRO_RESIZABLE_WINDOW
+    // (Plus) Follow the window's size, and keep it for the next start once it has settled.
+    if (ResizableWindow::Sizing().resizePending && ResizableWindow::ShouldFollowSize())
+        ApplyWindowResize();
+    if (ResizableWindow::SaveDue())
+        SaveSettingsINI(true);
+#endif
 
     return isRunning;
 }

@@ -63,6 +63,16 @@ GLFWwindow *RenderDevice::CreateGLFWWindow(void)
     int32 w, h;
 
     glfwWindowHint(GLFW_DECORATED, videoSettings.bordered);
+#if RETRO_RESIZABLE_WINDOW
+    // (Plus) Resizable in the bordered windowed mode (ResizableWindow.hpp), starting larger than
+    // the 1x default when the screen has room for it.
+    glfwWindowHint(GLFW_RESIZABLE, ResizableWindow::Resizable() ? GLFW_TRUE : GLFW_FALSE);
+    if (videoSettings.windowed) {
+        int32 areaX = 0, areaY = 0, areaWidth = 0, areaHeight = 0;
+        glfwGetMonitorWorkarea(glfwGetPrimaryMonitor(), &areaX, &areaY, &areaWidth, &areaHeight);
+        ResizableWindow::FitStartupWindowSize(areaWidth, areaHeight);
+    }
+#endif
 
     if (videoSettings.windowed) {
         w = videoSettings.windowWidth;
@@ -113,6 +123,10 @@ GLFWwindow *RenderDevice::CreateGLFWWindow(void)
     glfwSetMouseButtonCallback(win, ProcessMouseEvent);
     glfwSetWindowFocusCallback(win, ProcessFocusEvent);
     glfwSetWindowMaximizeCallback(win, ProcessMaximizeEvent);
+#if RETRO_RESIZABLE_WINDOW
+    glfwSetWindowSizeCallback(win, ProcessResizeEvent);
+    glfwSetWindowSizeLimits(win, videoSettings.pixWidth, videoSettings.pixHeight, GLFW_DONT_CARE, GLFW_DONT_CARE);
+#endif
 
     return win;
 }
@@ -249,10 +263,21 @@ bool RenderDevice::InitGraphicsAPI()
     glEnableVertexAttribArray(1);
 
     if (videoSettings.windowed || !videoSettings.exclusiveFS) {
+#if RETRO_RESIZABLE_WINDOW
+        // (Plus) Draw for the size the window has (it may be maximised, or just resized).
+        if (videoSettings.windowed) {
+            int32 width = 0, height = 0;
+            glfwGetWindowSize(window, &width, &height);
+            viewSize.x = width;
+            viewSize.y = height;
+            ResizableWindow::NoteAppliedSize(width, height);
+        }
+#else
         if (videoSettings.windowed) {
             viewSize.x = videoSettings.windowWidth;
             viewSize.y = videoSettings.windowHeight;
         }
+#endif
         else {
             viewSize.x = displayWidth[monitorIndex];
             viewSize.y = displayHeight[monitorIndex];
@@ -556,6 +581,14 @@ bool RenderDevice::ProcessEvents()
     glfwPollEvents();
     if (glfwWindowShouldClose(window))
         isRunning = false;
+
+#if RETRO_RESIZABLE_WINDOW
+    // (Plus) Follow the window's size, and keep it for the next start once it has settled.
+    if (ResizableWindow::Sizing().resizePending && ResizableWindow::ShouldFollowSize())
+        ApplyWindowResize();
+    if (ResizableWindow::SaveDue())
+        SaveSettingsINI(true);
+#endif
     return false;
 }
 
@@ -657,23 +690,7 @@ void RenderDevice::FlipScreen()
 
 void RenderDevice::Release(bool32 isRefresh)
 {
-    glDeleteTextures(SCREEN_COUNT, screenTextures);
-    glDeleteTextures(1, &imageTexture);
-    if (videoBuffer)
-        delete[] videoBuffer;
-    for (int32 i = 0; i < shaderCount; ++i) {
-        glDeleteProgram(shaderList[i].programID);
-    }
-    
-#if _GLVERSION > 30
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-#endif
-
-    shaderCount = 0;
-#if RETRO_USE_MOD_LOADER
-    userShaderCount = 0;
-#endif
+    ReleaseGraphics();
 
     glfwDestroyWindow(window);
 
@@ -689,6 +706,60 @@ void RenderDevice::Release(bool32 isRefresh)
         glfwTerminate();
     }
 }
+
+void RenderDevice::ReleaseGraphics()
+{
+    glDeleteTextures(SCREEN_COUNT, screenTextures);
+    glDeleteTextures(1, &imageTexture);
+    if (videoBuffer)
+        delete[] videoBuffer;
+#if !RETRO_USE_ORIGINAL_CODE
+    videoBuffer = NULL; // (Plus) Rebuilt by InitGraphicsAPI(), maybe without a new window.
+#endif
+    for (int32 i = 0; i < shaderCount; ++i) {
+        glDeleteProgram(shaderList[i].programID);
+    }
+    
+#if _GLVERSION > 30
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+#endif
+
+    shaderCount = 0;
+#if RETRO_USE_MOD_LOADER
+    userShaderCount = 0;
+#endif
+}
+
+#if RETRO_RESIZABLE_WINDOW
+void RenderDevice::ApplyWindowResize()
+{
+    int32 width = 0, height = 0;
+    glfwGetWindowSize(window, &width, &height);
+    const bool restored = !glfwGetWindowAttrib(window, GLFW_MAXIMIZED) && !glfwGetWindowAttrib(window, GLFW_ICONIFIED);
+    if (!ResizableWindow::TakeNewSize(width, height, restored))
+        return;
+
+    PrintLog(PRINT_NORMAL, "Window resized to %dx%d", width, height);
+
+    // Rebuild the GL objects for the new size, as RefreshWindow() does, in the same window.
+    videoSettings.windowState = WINDOWSTATE_UNINITIALIZED;
+    ReleaseGraphics();
+    if (!InitGraphicsAPI() || !InitShaders()) {
+        PrintLog(PRINT_NORMAL, "Could not rebuild the renderer for the new window size");
+        return;
+    }
+    videoSettings.windowState = WINDOWSTATE_ACTIVE;
+}
+
+void RenderDevice::ProcessResizeEvent(GLFWwindow *, int32 width, int32 height)
+{
+    // Rebuild once this frame's events are handled (see ProcessEvents()), as dragging the frame
+    // reports many sizes.
+    if (ResizableWindow::ShouldFollowSize())
+        ResizableWindow::Sizing().resizePending = true;
+}
+#endif
 
 bool RenderDevice::InitShaders()
 {

@@ -1285,7 +1285,12 @@ void RSDK::InitGameLink()
     info.stickR     = stickR;
     info.triggerL   = triggerL;
     info.triggerR   = triggerR;
+#if RETRO_USE_PLUS
+    // (Plus) Without the touches on the touch controls (PlusTouch.cpp).
+    info.touchMouse = RSDK::Plus::GameTouchInfo();
+#else
     info.touchMouse = &touchInfo;
+#endif
 
     info.unknown = &SKU::unknownInfo;
 
@@ -1304,7 +1309,12 @@ void RSDK::InitGameLink()
 
     info.controllerInfo = controller;
     info.stickInfo = stickL;
+#if RETRO_USE_PLUS
+    // (Plus) Without the touches on the touch controls (PlusTouch.cpp).
+    info.touchInfo = RSDK::Plus::GameTouchInfo();
+#else
     info.touchInfo = &touchInfo;
+#endif
 
     info.screenInfo = screens;
 

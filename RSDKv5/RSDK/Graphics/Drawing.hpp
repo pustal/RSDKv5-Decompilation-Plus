@@ -268,6 +268,15 @@ bool32 SetImageQuadSize(int32 width, int32 height);
 void FitImageQuad(RenderVertex *vertices, int32 vertexCount);
 #endif
 
+// (Plus) The SDL2 and GLFW renderers' resizable window on the desktop (ResizableWindow.hpp;
+// the DirectX renderers have their own, Win32Window.hpp).
+#if !RETRO_USE_ORIGINAL_CODE && (RETRO_RENDERDEVICE_SDL2 || RETRO_RENDERDEVICE_GLFW)                                                      \
+    && (RETRO_PLATFORM == RETRO_WIN || RETRO_PLATFORM == RETRO_OSX || RETRO_PLATFORM == RETRO_LINUX)
+#define RETRO_RESIZABLE_WINDOW (1)
+#else
+#define RETRO_RESIZABLE_WINDOW (0)
+#endif
+
 #if RETRO_RENDERDEVICE_DIRECTX9
 #include "DX9/DX9RenderDevice.hpp"
 #elif RETRO_RENDERDEVICE_DIRECTX11

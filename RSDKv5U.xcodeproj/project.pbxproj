@@ -7,6 +7,57 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A1B2DB90D8752E4E86408585 /* vpx_config.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2AE26503E0186AAEBFFE0 /* vpx_config.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2A15E641CDED8288406FF /* vp9_alloccommon.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B285916687102532BC9C74 /* vp9_alloccommon.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2A5D6B75AFB71068368F3 /* vp9_blockd.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B27D89FA07C9AD5C331A3D /* vp9_blockd.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2C13D4885C7C5AEBD719D /* vp9_common_data.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B241E357EAE9E5A358CBAA /* vp9_common_data.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B23E73F73323CB6A57751D /* vp9_entropy.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2EF0D9A56B9095B568BE9 /* vp9_entropy.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2DBA780B21C4B01BF07BD /* vp9_entropymode.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B29910E45B3DA61DE6E387 /* vp9_entropymode.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B224269B97637FCAB0B880 /* vp9_entropymv.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2AAC0780D5B11E9B83185 /* vp9_entropymv.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B26BCE1CD012743B8BF409 /* vp9_filter.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B260AD60B2BE9E65437BAF /* vp9_filter.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2B92893D04D8C3F330005 /* vp9_frame_buffers.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B242ECAA83BD7696F54846 /* vp9_frame_buffers.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2900A93F13A39AEC0F4D4 /* vp9_idct.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B261FEC8BFADFCC0800727 /* vp9_idct.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2710BE72DDE19EFF8E5BA /* vp9_loopfilter.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2684CD842A6A268695E03 /* vp9_loopfilter.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B268530416147471D53108 /* vp9_mvref_common.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B20B680E6DB9E506A891E2 /* vp9_mvref_common.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2FE76ACABF7CFB494640E /* vp9_pred_common.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B209357D9B276F67C6FB93 /* vp9_pred_common.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2A5560B423BB4B650D638 /* vp9_quant_common.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B296AFF14BBBFA81FFB0EB /* vp9_quant_common.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2A63F6C423462720D0063 /* vp9_reconinter.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2D1842747E49A04BAB4ED /* vp9_reconinter.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2783670E1395FE0C41024 /* vp9_reconintra.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B22CE5068BDA513FBF7447 /* vp9_reconintra.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2C9FFC25049AB269C1C1C /* vp9_rtcd.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2F8829761E8BE302CDD97 /* vp9_rtcd.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2D79508CAC90877B814E3 /* vp9_scale.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2F4FDD72474F238BA0980 /* vp9_scale.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2F0A8A6FF0A3C4ADBE83C /* vp9_scan.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2133E257452A3E534B7CC /* vp9_scan.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B22BB0F22D84511ABA1074 /* vp9_seg_common.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B290F50E94221A51B4E2AB /* vp9_seg_common.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B257CDF55588C7211A4E5A /* vp9_thread_common.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B22D11761665C0D65804F2 /* vp9_thread_common.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B213EC89D09327F1A4FE2D /* vp9_tile_common.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B26432A6C211BDBBEC793A /* vp9_tile_common.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B21F33DAFB14B688A23DEA /* vp9_decodeframe.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B256961E2D24D7CD198BCB /* vp9_decodeframe.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B226BB7A6B054BDA30E8A9 /* vp9_decodemv.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B23D9E456EBFB43D1C4B73 /* vp9_decodemv.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B261442DCCBCE8B44CC2D0 /* vp9_decoder.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B244AC4186F00CCE354243 /* vp9_decoder.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B255EDF69A6E1F1F0FCD58 /* vp9_detokenize.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B26590E4A94B31FFC26C6F /* vp9_detokenize.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B250A74C463460E94BDEB7 /* vp9_dsubexp.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2E96792906D610B41F113 /* vp9_dsubexp.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B266EA423161745B540F77 /* vp9_job_queue.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B28C7744F0CE0B009BBD0D /* vp9_job_queue.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B248E9919220F5A500D441 /* vp9_dx_iface.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B23477249225D9A61F0CEE /* vp9_dx_iface.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B25A72B672F02ED49DC46D /* vp9_iface_common.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B264A5067A5DF4D361BE91 /* vp9_iface_common.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2D5ABD86F020AD908FBC8 /* vpx_codec.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C89EA9BDD6D73942E15A /* vpx_codec.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2C1AFF195B7441AFD6D73 /* vpx_decoder.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B243F2088152833C29DFDE /* vpx_decoder.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2800754F49A4505C41C1F /* vpx_image.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B276998969033B60DBE66F /* vpx_image.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B26D2366015EF4DAF85363 /* vpx_tpl.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2D497F8D003556702CABA /* vpx_tpl.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2E31611F45BC117BCC204 /* bitreader.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2558D7CE7FCB2EA0832EF /* bitreader.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2A196492D9B4D8151AF1A /* bitreader_buffer.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2A32B16282F193E96F5F9 /* bitreader_buffer.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2AA3763D09BD919E7CE8E /* intrapred.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2763B30BC572F26E9C80D /* intrapred.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B256B97D9D4503BC6CD7BF /* inv_txfm.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B22A1939FFAEA693C833A4 /* inv_txfm.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B254722C23780A7E053077 /* loopfilter.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B267C0FAF23E3E329EB92E /* loopfilter.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2974294CA30B270EA977A /* prob.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B22B084DA8ED15DEE9082C /* prob.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2A9354D95FE67CD0B9A58 /* skin_detection.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B229F1FE59D455024D51AC /* skin_detection.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2F3B3B6EB9444A7EB77B9 /* vpx_convolve.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2692F8D495C31CF0B9E37 /* vpx_convolve.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B27ABF747D691DF16AF88D /* vpx_dsp_rtcd.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C08F5A767EE7DA6E6633 /* vpx_dsp_rtcd.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B29C15365EA186E4AAB8FD /* vpx_mem.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B281F833A648239A1F5DD5 /* vpx_mem.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2DE66D1BF715292DD8936 /* gen_scalers.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B21F70B88BA77C81A0A58D /* gen_scalers.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2A786D72F6038D22520E9 /* vpx_scale.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B293DAB2DEB8E31AEADB27 /* vpx_scale.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B27EED596B0C2FEC5C6405 /* yv12config.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2CF2661B8E7AA26CB4C36 /* yv12config.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2CB567A291CF719791934 /* yv12extend.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B283D595BB9593C2EC4E86 /* yv12extend.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2FD36638BBF41E7B4991F /* vpx_scale_rtcd.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2A4FF779A65563F53DF24 /* vpx_scale_rtcd.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B23701CECD823C1AE86AF7 /* vpx_thread.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B2865BE4B04CDE3E3BEB3D /* vpx_thread.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		A1B2FF3CBC3120C2317D7029 /* vpx_write_yuv_frame.c in Sources */ = {isa = PBXBuildFile; fileRef = A1B257D087CC51E3D45C7499 /* vpx_write_yuv_frame.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		C96881FF25DF3C8B00BEE4B8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C96881FE25DF3C8B00BEE4B8 /* Assets.xcassets */; };
 		C92834EA2631150A00D51CCE /* Ogg.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C92834E92631150A00D51CCE /* Ogg.framework */; };
 		C92834EB2631150A00D51CCE /* Ogg.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C92834E92631150A00D51CCE /* Ogg.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -90,6 +141,57 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A1B2AE26503E0186AAEBFFE0 /* vpx_config.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vpx_config.c; path = dependencies/all/libvpx/config/vpx_config.c; sourceTree = SOURCE_ROOT; };
+		A1B285916687102532BC9C74 /* vp9_alloccommon.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_alloccommon.c; path = dependencies/all/libvpx/vp9/common/vp9_alloccommon.c; sourceTree = SOURCE_ROOT; };
+		A1B27D89FA07C9AD5C331A3D /* vp9_blockd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_blockd.c; path = dependencies/all/libvpx/vp9/common/vp9_blockd.c; sourceTree = SOURCE_ROOT; };
+		A1B241E357EAE9E5A358CBAA /* vp9_common_data.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_common_data.c; path = dependencies/all/libvpx/vp9/common/vp9_common_data.c; sourceTree = SOURCE_ROOT; };
+		A1B2EF0D9A56B9095B568BE9 /* vp9_entropy.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_entropy.c; path = dependencies/all/libvpx/vp9/common/vp9_entropy.c; sourceTree = SOURCE_ROOT; };
+		A1B29910E45B3DA61DE6E387 /* vp9_entropymode.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_entropymode.c; path = dependencies/all/libvpx/vp9/common/vp9_entropymode.c; sourceTree = SOURCE_ROOT; };
+		A1B2AAC0780D5B11E9B83185 /* vp9_entropymv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_entropymv.c; path = dependencies/all/libvpx/vp9/common/vp9_entropymv.c; sourceTree = SOURCE_ROOT; };
+		A1B260AD60B2BE9E65437BAF /* vp9_filter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_filter.c; path = dependencies/all/libvpx/vp9/common/vp9_filter.c; sourceTree = SOURCE_ROOT; };
+		A1B242ECAA83BD7696F54846 /* vp9_frame_buffers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_frame_buffers.c; path = dependencies/all/libvpx/vp9/common/vp9_frame_buffers.c; sourceTree = SOURCE_ROOT; };
+		A1B261FEC8BFADFCC0800727 /* vp9_idct.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_idct.c; path = dependencies/all/libvpx/vp9/common/vp9_idct.c; sourceTree = SOURCE_ROOT; };
+		A1B2684CD842A6A268695E03 /* vp9_loopfilter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_loopfilter.c; path = dependencies/all/libvpx/vp9/common/vp9_loopfilter.c; sourceTree = SOURCE_ROOT; };
+		A1B20B680E6DB9E506A891E2 /* vp9_mvref_common.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_mvref_common.c; path = dependencies/all/libvpx/vp9/common/vp9_mvref_common.c; sourceTree = SOURCE_ROOT; };
+		A1B209357D9B276F67C6FB93 /* vp9_pred_common.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_pred_common.c; path = dependencies/all/libvpx/vp9/common/vp9_pred_common.c; sourceTree = SOURCE_ROOT; };
+		A1B296AFF14BBBFA81FFB0EB /* vp9_quant_common.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_quant_common.c; path = dependencies/all/libvpx/vp9/common/vp9_quant_common.c; sourceTree = SOURCE_ROOT; };
+		A1B2D1842747E49A04BAB4ED /* vp9_reconinter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_reconinter.c; path = dependencies/all/libvpx/vp9/common/vp9_reconinter.c; sourceTree = SOURCE_ROOT; };
+		A1B22CE5068BDA513FBF7447 /* vp9_reconintra.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_reconintra.c; path = dependencies/all/libvpx/vp9/common/vp9_reconintra.c; sourceTree = SOURCE_ROOT; };
+		A1B2F8829761E8BE302CDD97 /* vp9_rtcd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_rtcd.c; path = dependencies/all/libvpx/vp9/common/vp9_rtcd.c; sourceTree = SOURCE_ROOT; };
+		A1B2F4FDD72474F238BA0980 /* vp9_scale.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_scale.c; path = dependencies/all/libvpx/vp9/common/vp9_scale.c; sourceTree = SOURCE_ROOT; };
+		A1B2133E257452A3E534B7CC /* vp9_scan.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_scan.c; path = dependencies/all/libvpx/vp9/common/vp9_scan.c; sourceTree = SOURCE_ROOT; };
+		A1B290F50E94221A51B4E2AB /* vp9_seg_common.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_seg_common.c; path = dependencies/all/libvpx/vp9/common/vp9_seg_common.c; sourceTree = SOURCE_ROOT; };
+		A1B22D11761665C0D65804F2 /* vp9_thread_common.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_thread_common.c; path = dependencies/all/libvpx/vp9/common/vp9_thread_common.c; sourceTree = SOURCE_ROOT; };
+		A1B26432A6C211BDBBEC793A /* vp9_tile_common.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_tile_common.c; path = dependencies/all/libvpx/vp9/common/vp9_tile_common.c; sourceTree = SOURCE_ROOT; };
+		A1B256961E2D24D7CD198BCB /* vp9_decodeframe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_decodeframe.c; path = dependencies/all/libvpx/vp9/decoder/vp9_decodeframe.c; sourceTree = SOURCE_ROOT; };
+		A1B23D9E456EBFB43D1C4B73 /* vp9_decodemv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_decodemv.c; path = dependencies/all/libvpx/vp9/decoder/vp9_decodemv.c; sourceTree = SOURCE_ROOT; };
+		A1B244AC4186F00CCE354243 /* vp9_decoder.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_decoder.c; path = dependencies/all/libvpx/vp9/decoder/vp9_decoder.c; sourceTree = SOURCE_ROOT; };
+		A1B26590E4A94B31FFC26C6F /* vp9_detokenize.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_detokenize.c; path = dependencies/all/libvpx/vp9/decoder/vp9_detokenize.c; sourceTree = SOURCE_ROOT; };
+		A1B2E96792906D610B41F113 /* vp9_dsubexp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_dsubexp.c; path = dependencies/all/libvpx/vp9/decoder/vp9_dsubexp.c; sourceTree = SOURCE_ROOT; };
+		A1B28C7744F0CE0B009BBD0D /* vp9_job_queue.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_job_queue.c; path = dependencies/all/libvpx/vp9/decoder/vp9_job_queue.c; sourceTree = SOURCE_ROOT; };
+		A1B23477249225D9A61F0CEE /* vp9_dx_iface.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_dx_iface.c; path = dependencies/all/libvpx/vp9/vp9_dx_iface.c; sourceTree = SOURCE_ROOT; };
+		A1B264A5067A5DF4D361BE91 /* vp9_iface_common.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vp9_iface_common.c; path = dependencies/all/libvpx/vp9/vp9_iface_common.c; sourceTree = SOURCE_ROOT; };
+		A1B2C89EA9BDD6D73942E15A /* vpx_codec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vpx_codec.c; path = dependencies/all/libvpx/vpx/src/vpx_codec.c; sourceTree = SOURCE_ROOT; };
+		A1B243F2088152833C29DFDE /* vpx_decoder.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vpx_decoder.c; path = dependencies/all/libvpx/vpx/src/vpx_decoder.c; sourceTree = SOURCE_ROOT; };
+		A1B276998969033B60DBE66F /* vpx_image.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vpx_image.c; path = dependencies/all/libvpx/vpx/src/vpx_image.c; sourceTree = SOURCE_ROOT; };
+		A1B2D497F8D003556702CABA /* vpx_tpl.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vpx_tpl.c; path = dependencies/all/libvpx/vpx/src/vpx_tpl.c; sourceTree = SOURCE_ROOT; };
+		A1B2558D7CE7FCB2EA0832EF /* bitreader.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bitreader.c; path = dependencies/all/libvpx/vpx_dsp/bitreader.c; sourceTree = SOURCE_ROOT; };
+		A1B2A32B16282F193E96F5F9 /* bitreader_buffer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bitreader_buffer.c; path = dependencies/all/libvpx/vpx_dsp/bitreader_buffer.c; sourceTree = SOURCE_ROOT; };
+		A1B2763B30BC572F26E9C80D /* intrapred.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = intrapred.c; path = dependencies/all/libvpx/vpx_dsp/intrapred.c; sourceTree = SOURCE_ROOT; };
+		A1B22A1939FFAEA693C833A4 /* inv_txfm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = inv_txfm.c; path = dependencies/all/libvpx/vpx_dsp/inv_txfm.c; sourceTree = SOURCE_ROOT; };
+		A1B267C0FAF23E3E329EB92E /* loopfilter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = loopfilter.c; path = dependencies/all/libvpx/vpx_dsp/loopfilter.c; sourceTree = SOURCE_ROOT; };
+		A1B22B084DA8ED15DEE9082C /* prob.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = prob.c; path = dependencies/all/libvpx/vpx_dsp/prob.c; sourceTree = SOURCE_ROOT; };
+		A1B229F1FE59D455024D51AC /* skin_detection.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = skin_detection.c; path = dependencies/all/libvpx/vpx_dsp/skin_detection.c; sourceTree = SOURCE_ROOT; };
+		A1B2692F8D495C31CF0B9E37 /* vpx_convolve.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vpx_convolve.c; path = dependencies/all/libvpx/vpx_dsp/vpx_convolve.c; sourceTree = SOURCE_ROOT; };
+		A1B2C08F5A767EE7DA6E6633 /* vpx_dsp_rtcd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vpx_dsp_rtcd.c; path = dependencies/all/libvpx/vpx_dsp/vpx_dsp_rtcd.c; sourceTree = SOURCE_ROOT; };
+		A1B281F833A648239A1F5DD5 /* vpx_mem.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vpx_mem.c; path = dependencies/all/libvpx/vpx_mem/vpx_mem.c; sourceTree = SOURCE_ROOT; };
+		A1B21F70B88BA77C81A0A58D /* gen_scalers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gen_scalers.c; path = dependencies/all/libvpx/vpx_scale/generic/gen_scalers.c; sourceTree = SOURCE_ROOT; };
+		A1B293DAB2DEB8E31AEADB27 /* vpx_scale.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vpx_scale.c; path = dependencies/all/libvpx/vpx_scale/generic/vpx_scale.c; sourceTree = SOURCE_ROOT; };
+		A1B2CF2661B8E7AA26CB4C36 /* yv12config.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = yv12config.c; path = dependencies/all/libvpx/vpx_scale/generic/yv12config.c; sourceTree = SOURCE_ROOT; };
+		A1B283D595BB9593C2EC4E86 /* yv12extend.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = yv12extend.c; path = dependencies/all/libvpx/vpx_scale/generic/yv12extend.c; sourceTree = SOURCE_ROOT; };
+		A1B2A4FF779A65563F53DF24 /* vpx_scale_rtcd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vpx_scale_rtcd.c; path = dependencies/all/libvpx/vpx_scale/vpx_scale_rtcd.c; sourceTree = SOURCE_ROOT; };
+		A1B2865BE4B04CDE3E3BEB3D /* vpx_thread.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vpx_thread.c; path = dependencies/all/libvpx/vpx_util/vpx_thread.c; sourceTree = SOURCE_ROOT; };
+		A1B257D087CC51E3D45C7499 /* vpx_write_yuv_frame.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vpx_write_yuv_frame.c; path = dependencies/all/libvpx/vpx_util/vpx_write_yuv_frame.c; sourceTree = SOURCE_ROOT; };
 		C92834E92631150A00D51CCE /* Ogg.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Ogg.framework; path = dependencies/mac/libogg/macosx/Ogg.framework; sourceTree = "<group>"; };
 		C928353B26A3F28200D51CCE /* cocoaHelpers.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = cocoaHelpers.hpp; path = dependencies/mac/cocoaHelpers.hpp; sourceTree = SOURCE_ROOT; };
 		C928353C26A3F28200D51CCE /* cocoaHelpers.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = cocoaHelpers.mm; path = dependencies/mac/cocoaHelpers.mm; sourceTree = SOURCE_ROOT; };
@@ -231,6 +333,64 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		A1B251089774DE32EAB03AE6 /* libvpx (Plus: Sonic Origins video converter) */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2AE26503E0186AAEBFFE0 /* vpx_config.c */,
+				A1B285916687102532BC9C74 /* vp9_alloccommon.c */,
+				A1B27D89FA07C9AD5C331A3D /* vp9_blockd.c */,
+				A1B241E357EAE9E5A358CBAA /* vp9_common_data.c */,
+				A1B2EF0D9A56B9095B568BE9 /* vp9_entropy.c */,
+				A1B29910E45B3DA61DE6E387 /* vp9_entropymode.c */,
+				A1B2AAC0780D5B11E9B83185 /* vp9_entropymv.c */,
+				A1B260AD60B2BE9E65437BAF /* vp9_filter.c */,
+				A1B242ECAA83BD7696F54846 /* vp9_frame_buffers.c */,
+				A1B261FEC8BFADFCC0800727 /* vp9_idct.c */,
+				A1B2684CD842A6A268695E03 /* vp9_loopfilter.c */,
+				A1B20B680E6DB9E506A891E2 /* vp9_mvref_common.c */,
+				A1B209357D9B276F67C6FB93 /* vp9_pred_common.c */,
+				A1B296AFF14BBBFA81FFB0EB /* vp9_quant_common.c */,
+				A1B2D1842747E49A04BAB4ED /* vp9_reconinter.c */,
+				A1B22CE5068BDA513FBF7447 /* vp9_reconintra.c */,
+				A1B2F8829761E8BE302CDD97 /* vp9_rtcd.c */,
+				A1B2F4FDD72474F238BA0980 /* vp9_scale.c */,
+				A1B2133E257452A3E534B7CC /* vp9_scan.c */,
+				A1B290F50E94221A51B4E2AB /* vp9_seg_common.c */,
+				A1B22D11761665C0D65804F2 /* vp9_thread_common.c */,
+				A1B26432A6C211BDBBEC793A /* vp9_tile_common.c */,
+				A1B256961E2D24D7CD198BCB /* vp9_decodeframe.c */,
+				A1B23D9E456EBFB43D1C4B73 /* vp9_decodemv.c */,
+				A1B244AC4186F00CCE354243 /* vp9_decoder.c */,
+				A1B26590E4A94B31FFC26C6F /* vp9_detokenize.c */,
+				A1B2E96792906D610B41F113 /* vp9_dsubexp.c */,
+				A1B28C7744F0CE0B009BBD0D /* vp9_job_queue.c */,
+				A1B23477249225D9A61F0CEE /* vp9_dx_iface.c */,
+				A1B264A5067A5DF4D361BE91 /* vp9_iface_common.c */,
+				A1B2C89EA9BDD6D73942E15A /* vpx_codec.c */,
+				A1B243F2088152833C29DFDE /* vpx_decoder.c */,
+				A1B276998969033B60DBE66F /* vpx_image.c */,
+				A1B2D497F8D003556702CABA /* vpx_tpl.c */,
+				A1B2558D7CE7FCB2EA0832EF /* bitreader.c */,
+				A1B2A32B16282F193E96F5F9 /* bitreader_buffer.c */,
+				A1B2763B30BC572F26E9C80D /* intrapred.c */,
+				A1B22A1939FFAEA693C833A4 /* inv_txfm.c */,
+				A1B267C0FAF23E3E329EB92E /* loopfilter.c */,
+				A1B22B084DA8ED15DEE9082C /* prob.c */,
+				A1B229F1FE59D455024D51AC /* skin_detection.c */,
+				A1B2692F8D495C31CF0B9E37 /* vpx_convolve.c */,
+				A1B2C08F5A767EE7DA6E6633 /* vpx_dsp_rtcd.c */,
+				A1B281F833A648239A1F5DD5 /* vpx_mem.c */,
+				A1B21F70B88BA77C81A0A58D /* gen_scalers.c */,
+				A1B293DAB2DEB8E31AEADB27 /* vpx_scale.c */,
+				A1B2CF2661B8E7AA26CB4C36 /* yv12config.c */,
+				A1B283D595BB9593C2EC4E86 /* yv12extend.c */,
+				A1B2A4FF779A65563F53DF24 /* vpx_scale_rtcd.c */,
+				A1B2865BE4B04CDE3E3BEB3D /* vpx_thread.c */,
+				A1B257D087CC51E3D45C7499 /* vpx_write_yuv_frame.c */,
+			);
+			name = libvpx;
+			sourceTree = "<group>";
+		};
 		C928353A26A3F25D00D51CCE /* helpers */ = {
 			isa = PBXGroup;
 			children = (
@@ -275,6 +435,7 @@
 				C968887625DF488300BEE4B8 /* miniz */,
 				C968886925DF3F3C00BEE4B8 /* iniparser */,
 				C9CDC7DE282E44CB00E4C97E /* stb_vorbis */,
+				A1B251089774DE32EAB03AE6 /* libvpx */,
 				C96881FE25DF3C8B00BEE4B8 /* Assets.xcassets */,
 			);
 			path = RSDKv5;
@@ -674,6 +835,57 @@
 				C9CDC7B027F91A1700E4C97E /* EOSCore.cpp in Sources */,
 				C9CDC74F27F9199300E4C97E /* Debug.cpp in Sources */,
 				C928353D26A3F28200D51CCE /* cocoaHelpers.mm in Sources */,
+				A1B2DB90D8752E4E86408585 /* vpx_config.c in Sources */,
+				A1B2A15E641CDED8288406FF /* vp9_alloccommon.c in Sources */,
+				A1B2A5D6B75AFB71068368F3 /* vp9_blockd.c in Sources */,
+				A1B2C13D4885C7C5AEBD719D /* vp9_common_data.c in Sources */,
+				A1B23E73F73323CB6A57751D /* vp9_entropy.c in Sources */,
+				A1B2DBA780B21C4B01BF07BD /* vp9_entropymode.c in Sources */,
+				A1B224269B97637FCAB0B880 /* vp9_entropymv.c in Sources */,
+				A1B26BCE1CD012743B8BF409 /* vp9_filter.c in Sources */,
+				A1B2B92893D04D8C3F330005 /* vp9_frame_buffers.c in Sources */,
+				A1B2900A93F13A39AEC0F4D4 /* vp9_idct.c in Sources */,
+				A1B2710BE72DDE19EFF8E5BA /* vp9_loopfilter.c in Sources */,
+				A1B268530416147471D53108 /* vp9_mvref_common.c in Sources */,
+				A1B2FE76ACABF7CFB494640E /* vp9_pred_common.c in Sources */,
+				A1B2A5560B423BB4B650D638 /* vp9_quant_common.c in Sources */,
+				A1B2A63F6C423462720D0063 /* vp9_reconinter.c in Sources */,
+				A1B2783670E1395FE0C41024 /* vp9_reconintra.c in Sources */,
+				A1B2C9FFC25049AB269C1C1C /* vp9_rtcd.c in Sources */,
+				A1B2D79508CAC90877B814E3 /* vp9_scale.c in Sources */,
+				A1B2F0A8A6FF0A3C4ADBE83C /* vp9_scan.c in Sources */,
+				A1B22BB0F22D84511ABA1074 /* vp9_seg_common.c in Sources */,
+				A1B257CDF55588C7211A4E5A /* vp9_thread_common.c in Sources */,
+				A1B213EC89D09327F1A4FE2D /* vp9_tile_common.c in Sources */,
+				A1B21F33DAFB14B688A23DEA /* vp9_decodeframe.c in Sources */,
+				A1B226BB7A6B054BDA30E8A9 /* vp9_decodemv.c in Sources */,
+				A1B261442DCCBCE8B44CC2D0 /* vp9_decoder.c in Sources */,
+				A1B255EDF69A6E1F1F0FCD58 /* vp9_detokenize.c in Sources */,
+				A1B250A74C463460E94BDEB7 /* vp9_dsubexp.c in Sources */,
+				A1B266EA423161745B540F77 /* vp9_job_queue.c in Sources */,
+				A1B248E9919220F5A500D441 /* vp9_dx_iface.c in Sources */,
+				A1B25A72B672F02ED49DC46D /* vp9_iface_common.c in Sources */,
+				A1B2D5ABD86F020AD908FBC8 /* vpx_codec.c in Sources */,
+				A1B2C1AFF195B7441AFD6D73 /* vpx_decoder.c in Sources */,
+				A1B2800754F49A4505C41C1F /* vpx_image.c in Sources */,
+				A1B26D2366015EF4DAF85363 /* vpx_tpl.c in Sources */,
+				A1B2E31611F45BC117BCC204 /* bitreader.c in Sources */,
+				A1B2A196492D9B4D8151AF1A /* bitreader_buffer.c in Sources */,
+				A1B2AA3763D09BD919E7CE8E /* intrapred.c in Sources */,
+				A1B256B97D9D4503BC6CD7BF /* inv_txfm.c in Sources */,
+				A1B254722C23780A7E053077 /* loopfilter.c in Sources */,
+				A1B2974294CA30B270EA977A /* prob.c in Sources */,
+				A1B2A9354D95FE67CD0B9A58 /* skin_detection.c in Sources */,
+				A1B2F3B3B6EB9444A7EB77B9 /* vpx_convolve.c in Sources */,
+				A1B27ABF747D691DF16AF88D /* vpx_dsp_rtcd.c in Sources */,
+				A1B29C15365EA186E4AAB8FD /* vpx_mem.c in Sources */,
+				A1B2DE66D1BF715292DD8936 /* gen_scalers.c in Sources */,
+				A1B2A786D72F6038D22520E9 /* vpx_scale.c in Sources */,
+				A1B27EED596B0C2FEC5C6405 /* yv12config.c in Sources */,
+				A1B2CB567A291CF719791934 /* yv12extend.c in Sources */,
+				A1B2FD36638BBF41E7B4991F /* vpx_scale_rtcd.c in Sources */,
+				A1B23701CECD823C1AE86AF7 /* vpx_thread.c in Sources */,
+				A1B2FF3CBC3120C2317D7029 /* vpx_write_yuv_frame.c in Sources */,
 				C9CDC7BF27F91A2300E4C97E /* NXAchievements.cpp in Sources */,
 				C9CDC79B27F91A0A00E4C97E /* DummyLeaderboards.cpp in Sources */,
 				C9CDC7C127F91A2300E4C97E /* NXLeaderboards.cpp in Sources */,
@@ -834,9 +1046,12 @@
 					"RETRO_REVISION=3",
 					"RSDK_USE_SDL2=1",
 					"DEBUG=1",
+					"PLUS_VIDEO_CONVERTER=1",
 				);
 				HEADER_SEARCH_PATHS = (
 					"$(PROJECT_DIR)/dependencies/all",
+					"$(PROJECT_DIR)/dependencies/all/libvpx",
+					"$(PROJECT_DIR)/dependencies/all/libvpx/config",
 					"$(PROJECT_DIR)/dependencies/mac",
 					"$(PROJECT_DIR)/RSDKv5/",
 				);
@@ -845,7 +1060,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.8.0;
+				MARKETING_VERSION = 1.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = RSDK.RSDKv5U;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				USER_HEADER_SEARCH_PATHS = "";
@@ -869,9 +1084,12 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"RETRO_REVISION=3",
 					"RSDK_USE_SDL2=1",
+					"PLUS_VIDEO_CONVERTER=1",
 				);
 				HEADER_SEARCH_PATHS = (
 					"$(PROJECT_DIR)/dependencies/all",
+					"$(PROJECT_DIR)/dependencies/all/libvpx",
+					"$(PROJECT_DIR)/dependencies/all/libvpx/config",
 					"$(PROJECT_DIR)/dependencies/mac",
 					"$(PROJECT_DIR)/RSDKv5/",
 				);
@@ -880,7 +1098,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.8.0;
+				MARKETING_VERSION = 1.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = RSDK.RSDKv5U;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				USER_HEADER_SEARCH_PATHS = "";

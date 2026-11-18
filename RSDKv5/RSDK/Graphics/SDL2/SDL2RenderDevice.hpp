@@ -65,6 +65,13 @@ private:
 
     static void GetDisplays();
 
+#if RETRO_RESIZABLE_WINDOW
+    // (Plus) Rebuilds the renderer for the window's new size (ResizableWindow.hpp).
+    static void ApplyWindowResize();
+    // (Plus) Makes the window resizable or not, as the current mode asks, no smaller than 1x.
+    static void ApplyResizable();
+#endif
+
     static void ProcessEvent(SDL_Event event);
 
     static uint32 displayModeIndex;

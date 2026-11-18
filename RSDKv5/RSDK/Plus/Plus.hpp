@@ -82,6 +82,15 @@ void DrawOverlay();
 void ApplyTouchControls();
 
 /**
+ * The touches the RSDKv5 game sees (linked to it as its TouchInfo): with the
+ * touch controls, the screen's touches without those on the controls, rebuilt
+ * by ApplyTouchControls() every frame, so a finger on the pad or a button is
+ * not also a tap on the game (Sonic Mania's menus take any touch as one, and
+ * deselect their buttons while it lasts). Elsewhere, the touches as they are.
+ */
+TouchInfo *GameTouchInfo();
+
+/**
  * Called by ProcessInput() after ApplyTouchControls(): in a retro game, player
  * 1 also hears every input device, as the original games did (they have no
  * controller assignment, and the legacy cores read no other player's input),

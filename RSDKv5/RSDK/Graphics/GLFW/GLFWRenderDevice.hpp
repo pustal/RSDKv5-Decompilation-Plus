@@ -70,6 +70,14 @@ private:
 
     static void SetLinear(bool32 linear);
 
+    // Deletes the GL objects (textures, shaders, buffers), keeping the window and its context.
+    static void ReleaseGraphics();
+#if RETRO_RESIZABLE_WINDOW
+    // (Plus) Rebuilds the renderer for the window's new size (ResizableWindow.hpp).
+    static void ApplyWindowResize();
+    static void ProcessResizeEvent(GLFWwindow *, int32 width, int32 height);
+#endif
+
     static GLFWwindow *CreateGLFWWindow(void);
 
     static int32 monitorIndex;
