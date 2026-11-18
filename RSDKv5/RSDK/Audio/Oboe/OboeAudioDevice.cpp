@@ -84,9 +84,17 @@ void AudioDevice::onErrorAfterClose(oboe::AudioStream *s, oboe::Result error) {
 
 void AudioDevice::Release()
 {
+#if RETRO_USE_ORIGINAL_CODE
     LockAudioDevice();
     shutdownStream();
     UnlockAudioDevice();
+#else
+    // (Plus) Stopped without holding the mutex: stop() waits for the data callback in progress to
+    // return, and that callback takes the mutex too (onAudioReady()), so holding it here left
+    // both waiting forever: the app froze on Exit instead of closing. Once stopped, no callback
+    // runs, so the rest needs no lock.
+    shutdownStream();
+#endif
     AudioDeviceBase::Release();
     pthread_mutex_destroy(&mutex);
     delete audioDevice;

@@ -79,6 +79,22 @@ void android_main(struct android_app *ap)
 
     Paddleboat_destroy(jni->env);
     SwappyGL_destroy();
+
+#if !RETRO_USE_ORIGINAL_CODE
+    // (Plus) The engine stopped on its own (Exit in the Plus menu, or the game quitting), not
+    // because Android is closing the app: finish the activity, which would otherwise stay on its
+    // last frame, and keep handling the glue's events until Android destroys it (the glue must
+    // not be left before that). Its launcher then closes too (Launcher.java).
+    if (!app->destroyRequested) {
+        GameActivity_finish(app->activity);
+        while (!app->destroyRequested) {
+            int32 events                       = 0;
+            struct android_poll_source *source = NULL;
+            if (ALooper_pollAll(-1, NULL, &events, (void **)&source) >= 0 && source)
+                source->process(app, source);
+        }
+    }
+#endif
 }
 #else
 int32 main(int32 argc, char *argv[]) { return RSDK_main(argc, argv, (void *)LinkGameLogic); }
