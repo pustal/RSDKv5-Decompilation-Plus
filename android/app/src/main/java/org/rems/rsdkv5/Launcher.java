@@ -1,15 +1,23 @@
 package org.rems.rsdkv5;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.UriPermission;
+import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.DocumentsContract;
+import android.provider.Settings;
 import android.util.Log;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -41,6 +49,29 @@ public class Launcher extends AppCompatActivity {
 
     private static int takeFlags = (Intent.FLAG_GRANT_WRITE_URI_PERMISSION |
             Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+    // (Plus) The transfer page (Transfer.java).
+
+    /** The transfer page's line in the "Game starting" dialog ("" for none). */
+    private static String transferLine = "";
+
+    /** Asks for the access the transfer page needs to a picked folder ("All files access", or the storage permission). */
+    private ActivityResultLauncher<Intent> allFilesLauncher = null;
+    private ActivityResultLauncher<String> storagePermissionLauncher = null;
+
+    /** Where the launcher remembers that it asked for that access (it asks once). */
+    private static final String PREFERENCES = "launcher";
+    private static final String ASKED_FILE_ACCESS = "askedFileAccess";
+
+    /** How often the "Add the game" dialog looks for the game's files, in milliseconds. */
+    private static final long SETUP_POLL_MS = 1000;
+
+    /** Runs the "Add the game" dialog's checks on the main thread. */
+    private final Handler handler = new Handler(Looper.getMainLooper());
+
+    /** The "Add the game" dialog while it shows, and its periodic check. */
+    private AlertDialog setupDialog = null;
+    private Runnable setupPoll = null;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -76,6 +107,14 @@ public class Launcher extends AppCompatActivity {
                 result -> {
                     quit(0);
                 });
+
+        // (Plus) Back from Android's file access screens: look at the folder again.
+        allFilesLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> startGame(true));
+        storagePermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                granted -> startGame(true));
 
         boolean canRun = true;
 
@@ -116,7 +155,7 @@ public class Launcher extends AppCompatActivity {
             alert.setMessage(String.format(
                     "Game will start in %s in %d seconds...",
                     describe(alert.getContext(), basePath),
-                    TimeUnit.MILLISECONDS.toSeconds(l) + 1));
+                    TimeUnit.MILLISECONDS.toSeconds(l) + 1) + transferLine);
         }
 
         @Override
@@ -155,6 +194,14 @@ public class Launcher extends AppCompatActivity {
 
         refreshStore();
 
+        // (Plus) On a TV, the app's own folder until another is chosen: the
+        // game's files arrive through the transfer page, and many TVs have no
+        // folder picker. Phones and tablets are asked as before.
+        if (basePath == null && isTelevision()) {
+            basePath = GameFolderProvider.treeUri();
+            refreshStore();
+        }
+
         // (Plus) The app's own folder needs no permission from the system.
         boolean found = isAppFolder(basePath);
         if (basePath != null && !found) {
@@ -184,6 +231,11 @@ public class Launcher extends AppCompatActivity {
                     .setCancelable(false)
                     .show();
         } else {
+            // (Plus) The transfer page on this folder; it may first ask for
+            // file access, or wait for the game's files (then this runs again).
+            if (!prepareTransfer())
+                return;
+
             AlertDialog baseAlert = null;
 
             DialogTimer timer = new DialogTimer(5000, 100);
@@ -200,6 +252,9 @@ public class Launcher extends AppCompatActivity {
                                 createFile(".nomedia");
                         } catch (Exception e) {
                         }
+
+                        // (Plus) What the transfer page staged last time, before the game reads it.
+                        Transfer.nativeApplyPendingFiles();
 
                         Intent intent = new Intent(this, RSDK.class);
                         intent.setData(basePath);
@@ -223,9 +278,7 @@ public class Launcher extends AppCompatActivity {
                     })
                     .setNeutralButton("Change Path", (dialog, i) -> {
                         timer.cancel();
-                        if (!isAppFolder(basePath))
-                            getContentResolver().releasePersistableUriPermission(basePath, takeFlags);
-                        folderPicker();
+                        changeFolder();
                     })
                     .create();
 
@@ -275,7 +328,8 @@ public class Launcher extends AppCompatActivity {
         String message = (noPicker ? "This device has no folder picker, so the game runs in its own folder:\n\n"
                 : "The game runs in its own folder:\n\n")
                 + folder + "\n\n"
-                + "Put Data.rsdk (and any other files the game uses, such as mods) there, for example with "
+                + "Upload Data.rsdk (and the retro packs, mods...) from a phone or computer with the transfer "
+                + "page shown next, or copy them there yourself, for example with "
                 + "\"adb push Data.rsdk " + folder + "/\" from a computer. Android removes this folder "
                 + "with the app.";
         new AlertDialog.Builder(this)
@@ -292,6 +346,168 @@ public class Launcher extends AppCompatActivity {
                 })
                 .setCancelable(false)
                 .show();
+    }
+
+    /** (Plus) Picks another folder for the game (the picker, or the app's folder without one). */
+    private void changeFolder() {
+        if (basePath != null && !isAppFolder(basePath)) {
+            try {
+                getContentResolver().releasePersistableUriPermission(basePath, takeFlags);
+            } catch (SecurityException e) {
+                // Not held (the folder was only just picked): nothing to release.
+            }
+        }
+        folderPicker();
+    }
+
+    /** (Plus) Whether this device is a TV (Android TV, Google TV). */
+    private boolean isTelevision() {
+        return getPackageManager().hasSystemFeature(PackageManager.FEATURE_LEANBACK);
+    }
+
+    /**
+     * (Plus) Starts the transfer page on the game's folder, and sets the line
+     * the "Game starting" dialog shows about it.
+     *
+     * @return false when it showed a dialog instead (asking for file access,
+     *         or "Add the game" while the folder has nothing to play), which
+     *         calls startGame() again when it is done.
+     */
+    private boolean prepareTransfer() {
+        final String path = Transfer.folderPath(this, basePath);
+        if (!Transfer.canUse(path)) {
+            Transfer.nativeStop();
+            if (path != null && canAskForFileAccess() && !preferences().getBoolean(ASKED_FILE_ACCESS, false)) {
+                askForFileAccess();
+                return false;
+            }
+            transferLine = path == null ? ""
+                    : "\n\nThe transfer page needs access to this folder (\"All files access\" for the app in "
+                      + "Android's settings), or the App folder (Change Path).";
+            return true;
+        }
+
+        Transfer.nativeSetLanAddress(Transfer.lanAddress());
+        if (!Transfer.nativeStart(path)) {
+            transferLine = "\n\nThe transfer page could not start.";
+            return true;
+        }
+        if (!Transfer.nativeHasGameData()) {
+            showSetupDialog();
+            return false;
+        }
+
+        final String page = Transfer.nativePageAddress();
+        transferLine = page.isEmpty() ? "\n\nConnect to a network to use the transfer page."
+                : "\n\nTransfer page: " + page + "  PIN " + Transfer.nativePin();
+        return true;
+    }
+
+    /** (Plus) The launcher's own small settings. */
+    private SharedPreferences preferences() {
+        return getSharedPreferences(PREFERENCES, MODE_PRIVATE);
+    }
+
+    /** (Plus) Whether Android lets the app ask for direct access to the device's storage (it does not have it yet). */
+    private boolean canAskForFileAccess() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+            return !Environment.isExternalStorageManager();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+            return checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED;
+        return false;
+    }
+
+    /**
+     * (Plus) Once: explains why the transfer page needs direct access to the
+     * picked folder, and opens Android's screen for it. The game works without
+     * it (the files are then copied by hand, or the App folder is used).
+     */
+    private void askForFileAccess() {
+        preferences().edit().putBoolean(ASKED_FILE_ACCESS, true).apply();
+        new AlertDialog.Builder(this)
+                .setTitle("Transfer page")
+                .setMessage("The transfer page lets a phone or computer on the same network upload the game's "
+                        + "files (Data.rsdk, the retro packs, mods) and back up the saves. To write them into "
+                        + "the folder you picked, the app needs access to it (\"All files access\").\n\n"
+                        + "Without it the game works as before: copy the files yourself, or use the App folder.")
+                .setPositiveButton("Allow", (dialog, i) -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                Uri.parse("package:" + getPackageName()));
+                        try {
+                            allFilesLauncher.launch(intent);
+                        } catch (ActivityNotFoundException e) {
+                            allFilesLauncher.launch(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
+                        }
+                    } else {
+                        storagePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+                    }
+                })
+                .setNegativeButton("Not now", (dialog, i) -> startGame(true))
+                .setCancelable(false)
+                .show();
+    }
+
+    /** (Plus) The "Add the game" dialog's text: the transfer page's address and PIN, or how to get it. */
+    private String setupMessage() {
+        final String folder = describe(this, basePath);
+        final String page = Transfer.nativePageAddress();
+        final String reach = page.isEmpty()
+                ? "Connect this device to a network to upload them from a phone or computer with the transfer page."
+                : "On a phone or computer on the same network, open\n\n" + page + "\n\nenter the PIN "
+                  + Transfer.nativePin() + " and upload them there. The game starts when they arrive.";
+        return "Sonic Mania's Data.rsdk (or the retro packs) are not in the game's folder yet.\n\n" + reach
+                + "\n\nOr copy them into " + folder + " yourself.";
+    }
+
+    /**
+     * (Plus) Shown while the game's folder has nothing to play: the transfer
+     * page's address and PIN, updated every second, until the files arrive
+     * (then the game starts as usual).
+     */
+    private void showSetupDialog() {
+        stopSetupPolling();
+        setupDialog = new AlertDialog.Builder(this)
+                .setTitle("Add the game")
+                .setMessage(setupMessage())
+                .setNeutralButton("Change Path", (dialog, i) -> {
+                    stopSetupPolling();
+                    changeFolder();
+                })
+                .setNegativeButton("Exit", (dialog, i) -> {
+                    stopSetupPolling();
+                    quit(0);
+                })
+                .setCancelable(false)
+                .create();
+        setupDialog.show();
+
+        setupPoll = new Runnable() {
+            @Override
+            public void run() {
+                if (setupDialog == null)
+                    return;
+                Transfer.nativeSetLanAddress(Transfer.lanAddress()); // The network may have changed.
+                if (Transfer.nativeHasGameData()) {
+                    stopSetupPolling();
+                    startGame(true);
+                    return;
+                }
+                setupDialog.setMessage(setupMessage());
+                handler.postDelayed(this, SETUP_POLL_MS);
+            }
+        };
+        handler.postDelayed(setupPoll, SETUP_POLL_MS);
+    }
+
+    /** (Plus) Closes the "Add the game" dialog and stops its checks. */
+    private void stopSetupPolling() {
+        if (setupPoll != null)
+            handler.removeCallbacks(setupPoll);
+        setupPoll = null;
+        if (setupDialog != null && setupDialog.isShowing())
+            setupDialog.dismiss();
+        setupDialog = null;
     }
 
     public Uri createFile(String filename) throws FileNotFoundException {

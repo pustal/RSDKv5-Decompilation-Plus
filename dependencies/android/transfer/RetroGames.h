@@ -1,0 +1,161 @@
+/**
+ * @file RetroGames.h
+ * @brief The "retro" games the engine's legacy RSDKv3/v4 cores can play:
+ *        Sonic the Hedgehog, Sonic the Hedgehog 2 and Sonic CD, from the
+ *        player's own data packs.
+ *
+ * Each game can have two packs:
+ *   - **origins**: the .rsdk from Sonic Origins. It has the game but no music
+ *     or sound effects (Origins plays those through its own engine);
+ *   - **classic**: the Data.rsdk of the earlier standalone releases (the 2013
+ *     remasters of Sonic 1 and 2, Sonic CD from 2011), sound included.
+ *
+ * How a game is played depends on which packs are there:
+ *   - origins + classic: the Origins game, with the classic pack loaded second
+ *     so its music and sound fill in what the Origins pack lacks. Sonic
+ *     Mania's pack, when installed, lends the sounds Origins added (the Drop
+ *     Dash, Knuckles' and Amy's moves);
+ *   - origins only: the Origins game without sound;
+ *   - classic only: the classic game, when its scripts are the mobile
+ *     bytecode the engine runs (the 2013 Sonic 1 and 2 packs, and Sonic CD's
+ *     mobile pack). Sonic CD's Steam pack stores its scripts under the PC
+ *     build's names (GS000.bin...), which the engine does not load, so it
+ *     can only lend its sound.
+ *
+ * Sonic CD's 2011 pack comes in an older format the engine cannot open; the
+ * web page converts it on upload (see RsdkPack.h).
+ *
+ * Packs are looked for in the TV's data folder (`<data>/retro/`) and then in
+ * a `SonicWebMania/retro/` folder on each USB drive, under fixed names:
+ * `<game>-origins.rsdk` and `<game>-classic.rsdk` (for example
+ * `sonic1-origins.rsdk`). The web page names uploads this way.
+ *
+ * The games themselves are run by the engine's Plus module
+ * (RSDKv5-Decompilation-Plus, RSDK/Plus/), which looks for the packs in the
+ * same folders (main() adds the USB drives' with RSDK::Plus::AddPackFolder())
+ * and keeps each game's saves in `<data>/retro/<game>/`. This class is what
+ * the web page and the setup screen know of them.
+ */
+#ifndef TRANSFER_RETRO_GAMES_H
+#define TRANSFER_RETRO_GAMES_H
+
+#include <cstdint>
+#include <string>
+#include <vector>
+
+namespace transfer
+{
+
+class Storage;
+
+/** Which release a pack comes from. */
+enum class RetroEdition {
+    Origins, ///< Sonic Origins (no audio in the pack).
+    Classic, ///< The earlier standalone release (with audio).
+};
+
+/** What a pack file on disk turned out to be. */
+enum class PackState {
+    Missing,     ///< No file.
+    Ready,       ///< An RSDKv3/v4 pack the legacy engine can open.
+    Unsupported, ///< Sonic CD's original 2011 pack format, which must be converted first (the web page does it).
+    Invalid,     ///< An RSDK pack of the wrong kind (Sonic Mania's RSDKv5) or a damaged file.
+};
+
+/** One pack slot of a game. */
+struct RetroPack {
+    PackState state = PackState::Missing;
+    std::string path;      ///< Absolute path when the file exists.
+    std::uint64_t size = 0; ///< File size in bytes.
+    char version    = 0;     ///< The pack's version byte ('3', '4', 'B') when Ready.
+    bool onUsb      = false; ///< Found on a USB drive rather than the TV.
+    bool standalone = false; ///< Ready and has bytecode the engine runs (see RsdkPack::HasEngineBytecode).
+};
+
+/** A game of the catalogue. */
+struct RetroGameInfo {
+    const char *id;    ///< Short id used in file names and URLs, e.g. "sonic1".
+    const char *title; ///< Name shown to people.
+};
+
+/** The games this port knows how to set up. */
+const std::vector<RetroGameInfo> &RetroCatalogue();
+
+/** A game and the packs found for it. */
+struct RetroGame {
+    RetroGameInfo info{};
+    RetroPack origins;
+    RetroPack classic;
+
+    /** True when the game can be started: an Origins pack, or a classic pack that runs on its own. */
+    bool Playable() const { return origins.state == PackState::Ready || (classic.state == PackState::Ready && classic.standalone); }
+
+    /** True when the game will have music and sound effects. */
+    bool HasSound() const { return classic.state == PackState::Ready; }
+
+    /** One-line description of how the game will be played, e.g. "Sonic Origins, sound from the classic release". */
+    std::string ModeDescription() const;
+};
+
+class RetroLibrary
+{
+public:
+    /** Folder (inside the data directory, or inside kUsbFolderName on a drive) holding the packs. */
+    static constexpr const char *kPackFolderName = "retro";
+    /** Folder created at the top of a USB drive (shared with Sonic Mania's pack, see Storage). */
+    static constexpr const char *kUsbFolderName = "SonicWebMania";
+    /** Id used for Sonic Mania itself (as in the engine's Plus.ini). */
+    static constexpr const char *kManiaId = "mania";
+
+    explicit RetroLibrary(const Storage &storage);
+
+    /** Looks for every game's packs on the TV and the USB drives. */
+    std::vector<RetroGame> Scan() const;
+
+    /** Scans and returns only the games that can be played. */
+    std::vector<RetroGame> ScanPlayable() const;
+
+    /** @return The catalogue entry for @p id, or null for an unknown id. */
+    static const RetroGameInfo *FindGame(const std::string &id);
+
+    /** "sonic1-origins.rsdk" and so on. */
+    static std::string PackFileName(const std::string &id, RetroEdition edition);
+
+    /** `<data>/retro`: where packs uploaded to the TV are kept. */
+    std::string TvPackFolder() const;
+
+    /** `<mount>/SonicWebMania/retro`: where packs are kept on a USB drive. */
+    static std::string UsbPackFolder(const std::string &mountPoint);
+
+    /** Reads the start of @p path and classifies it (see PackState). */
+    static PackState Inspect(const std::string &path, char *version);
+
+    /**
+     * Every folder packs are kept in: the TV's, then each USB drive's
+     * (drives without the folder included, so new copies can go there).
+     */
+    std::vector<std::string> PackFolders() const;
+
+    /**
+     * Installs packs staged during the previous session (`<pack>.pending`,
+     * uploaded or moved while the game read the pack): each replaces the pack
+     * of that name, and the copies of it in the other folders are removed.
+     * Called before the engine starts, so nothing has them open.
+     *
+     * @return Number of packs installed.
+     */
+    int ApplyPendingPacks() const;
+
+private:
+    /** Fills @p pack from the first folder in @p folders that has @p fileName. */
+    static void FindPack(const std::vector<std::pair<std::string, bool>> &folders, const std::string &fileName, RetroPack *pack);
+
+    const Storage &storage_;
+};
+
+/** Short lower-case name of a pack state for the web page ("missing", "ready", "unsupported", "invalid"). */
+const char *PackStateName(PackState state);
+
+} // namespace transfer
+
+#endif // TRANSFER_RETRO_GAMES_H

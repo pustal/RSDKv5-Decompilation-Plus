@@ -34,6 +34,8 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 #endif
 
 #elif RETRO_PLATFORM == RETRO_ANDROID
+#include <androidTransfer.hpp> // (Plus) The transfer page (dependencies/android/androidTransfer.cpp).
+
 extern "C" {
 void android_main(struct android_app *app);
 }
@@ -75,10 +77,26 @@ void android_main(struct android_app *ap)
                                     | AWINDOW_FLAG_SHOW_WHEN_LOCKED,
                                 0);
 
+#if !RETRO_USE_ORIGINAL_CODE
+    // (Plus) The transfer page the launcher started: its address in the Plus menu, and so on.
+    ConfigureTransferForGame();
+#endif
+
     RSDK_main(0, NULL, (void *)LinkGameLogic);
 
     Paddleboat_destroy(jni->env);
     SwappyGL_destroy();
+
+#if !RETRO_USE_ORIGINAL_CODE
+    // (Plus) "Restart game" (Plus menu): a new process applies what the transfer page staged, as
+    // the engine's globals cannot be reset in this one (RSDK.java's restartApp()).
+    if (RestartRequested() && !app->destroyRequested) {
+        JNISetup *setup        = GetJNISetup();
+        jmethodID restartApp   = setup->env->GetMethodID(setup->clazz, "restartApp", "()V");
+        if (restartApp)
+            setup->env->CallVoidMethod(setup->thiz, restartApp);
+    }
+#endif
 
 #if !RETRO_USE_ORIGINAL_CODE
     // (Plus) The engine stopped on its own (Exit in the Plus menu, or the game quitting), not

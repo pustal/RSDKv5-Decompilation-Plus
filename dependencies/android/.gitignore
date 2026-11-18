@@ -3,3 +3,7 @@
 !README.md
 !libogg/include/ogg/config_types.h
 !androidHelpers*
+# (Plus) The transfer page (see transfer/README.md).
+!androidTransfer*
+!transfer/
+!transfer/**

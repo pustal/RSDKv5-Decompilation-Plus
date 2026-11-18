@@ -17,6 +17,7 @@ import com.google.androidgamesdk.GameActivity;
 
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
+import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.net.Uri;
@@ -373,5 +374,19 @@ public class RSDK extends GameActivity {
 
     public void hideLoadingIcon() {
         loadingIcon.hide();
+    }
+
+    /**
+     * (Plus) The Plus menu's "Restart game" (called by android_main once the
+     * engine stopped): starts the launcher afresh in a new process, which
+     * applies the files the transfer page staged and finds the packs added
+     * since. A new process, because the engine's globals cannot be reset in
+     * this one.
+     */
+    public void restartApp() {
+        Intent intent = new Intent(getApplicationContext(), Launcher.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        Runtime.getRuntime().exit(0);
     }
 }

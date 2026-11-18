@@ -77,3 +77,6 @@ A: There is! You can find RSDKv3 [here](https://github.com/RSDKModding/RSDKv3-De
 
 ### Q: Is this the official RSDKv5 decompilation?
 A: No. It is a fork of [RSDKModding's RSDKv5 decompilation](https://github.com/RSDKModding/RSDKv5-Decompilation) that brings the features of [SonicWebMania](https://github.com/pustal/SonicWebMania) (the LG webOS TV port) to every platform. Questions about the decompilation itself, and RSDKModding's own plans, belong to [their repository](https://github.com/RSDKModding/RSDKv5-Decompilation).
+
+### Q: Why does the Android app ask for "All files access"?
+A: Only for the transfer page, and only when the game's folder was picked with the folder picker: the page writes the uploaded files into that folder directly, which Android allows with that permission (up to Android 10, the storage permission). It asks once. Without it the game works as before and the files are copied by hand; the app's own folder (**App folder**, the default on TVs) needs no permission.

@@ -63,7 +63,9 @@ set(RETRO_OUTPUT_NAME "RetroEngine" CACHE STRING "The exported name of the execu
 set(VITA_TITLE_ID "RSDKPLUS5")
 set(VITA_MKSFOEX_FLAGS "${VITA_MKSFOEX_FLAGS} -d PARENTAL_LEVEL=1 -d ATTRIBUTE2=12")
 
-# The app's version as the Vita writes it: "1.6.0" -> "01.60".
+# The app's version as the Vita writes it, which must be "##.##": "1.6.0" -> "01.60", and
+# from minor version 10 on the minor version alone ("1.10.0" -> "01.10"; the Vita keeps two
+# digits after the point, so the patch number no longer fits).
 string(REGEX REPLACE "^([0-9]+)\\.([0-9]+)\\.([0-9]+).*$" "\\1;\\2;\\3" VITA_VERSION_PARTS "${DECOMP_VERSION}")
 list(GET VITA_VERSION_PARTS 0 VITA_VERSION_MAJOR)
 list(GET VITA_VERSION_PARTS 1 VITA_VERSION_MINOR)
@@ -71,7 +73,12 @@ list(GET VITA_VERSION_PARTS 2 VITA_VERSION_PATCH)
 if(VITA_VERSION_MAJOR LESS 10)
     set(VITA_VERSION_MAJOR "0${VITA_VERSION_MAJOR}")
 endif()
-set(VITA_APP_VERSION "${VITA_VERSION_MAJOR}.${VITA_VERSION_MINOR}${VITA_VERSION_PATCH}")
+if(VITA_VERSION_MINOR LESS 10)
+    set(VITA_VERSION_DECIMALS "${VITA_VERSION_MINOR}${VITA_VERSION_PATCH}")
+else()
+    set(VITA_VERSION_DECIMALS "${VITA_VERSION_MINOR}")
+endif()
+set(VITA_APP_VERSION "${VITA_VERSION_MAJOR}.${VITA_VERSION_DECIMALS}")
 
 vita_create_self(eboot.bin RetroEngine UNSAFE)
 vita_create_vpk(${RETRO_NAME}.vpk ${VITA_TITLE_ID} eboot.bin

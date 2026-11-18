@@ -1,0 +1,1442 @@
+<!doctype html>
+<!--
+  Transfer page of Sonic Mania Decompilation Plus on Android (adapted from SonicWebMania's).
+  Served by the app itself (src/port/TransferServer.cpp) and embedded into the
+  binary at build time, so it must stay self-contained: no external scripts,
+  fonts or images. Keep it small; it is stored in the app.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sonic Mania Plus</title>
+<style>
+  :root { --bg:#0b1230; --card:#141d45; --line:#2a3a7a; --text:#ecedf5; --dim:#9aa3c7; --accent:#5aaaff; --ok:#5ac878; --warn:#ff7a5a; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--text); }
+  main { max-width:640px; margin:0 auto; padding:16px; }
+  h1 { font-size:1.4rem; margin:8px 0 16px; color:#ffd23c; }
+  h2 { font-size:1.05rem; margin:0 0 8px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:14px; }
+  p { margin:6px 0; }
+  .dim { color:var(--dim); font-size:.9rem; }
+  .warn { color:var(--warn); }
+  .ok { color:var(--ok); }
+  input[type=text] { font-size:1.4rem; letter-spacing:.3em; width:7em; padding:6px 8px; border-radius:6px; border:1px solid var(--line); background:#0b1230; color:var(--text); }
+  button, label.button { display:inline-block; font:inherit; padding:8px 14px; border-radius:6px; border:0; background:var(--accent); color:#06102a; font-weight:600; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:default; }
+  input[type=file] { display:none; }
+  progress { width:100%; height:12px; margin-top:8px; }
+  table { width:100%; border-collapse:collapse; font-size:.92rem; }
+  td { padding:6px 4px; border-top:1px solid var(--line); }
+  td:last-child { text-align:right; }
+  a { color:var(--accent); }
+  .hidden { display:none; }
+  select { font:inherit; padding:6px 8px; border-radius:6px; border:1px solid var(--line); background:#0b1230; color:var(--text); max-width:100%; }
+  .game { border-top:1px solid var(--line); padding-top:10px; margin-top:10px; }
+  .game h3 { font-size:1rem; margin:0 0 2px; }
+  .pack { display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; justify-content:space-between; margin:6px 0; font-size:.92rem; }
+  .pack .info { flex:1 1 240px; }
+  .pack button, .pack label.button { padding:5px 10px; font-size:.88rem; }
+  button.secondary { background:transparent; color:var(--accent); border:1px solid var(--line); }
+  .mod { border-top:1px solid var(--line); padding-top:8px; }
+  .mod label { margin-right:6px; }
+  footer { text-align:center; padding:8px 0 24px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Sonic Mania Plus</h1>
+
+  <section id="pin-section">
+    <h2>Enter the PIN shown on the device</h2>
+    <form id="pin-form">
+      <input id="pin-input" type="text" inputmode="numeric" maxlength="4" autocomplete="off" required>
+      <button type="submit">Connect</button>
+    </form>
+    <p id="pin-error" class="warn hidden"></p>
+  </section>
+
+  <div id="app" class="hidden">
+    <section>
+      <h2>Status</h2>
+      <p id="status-line">Loading...</p>
+      <p id="space-line" class="dim"></p>
+      <p id="restart-line" class="warn hidden">Some uploads are waiting. In the game, open the Plus menu and choose "Restart game" to apply them.</p>
+      <p>Store packs and mods on: <select id="pack-dest"></select>
+        <button id="pack-folder" class="secondary hidden" type="button">Create the folder on this drive</button></p>
+      <p id="pack-dest-line" class="dim"></p>
+      <p><span id="cleanup-line" class="dim">Checking for leftovers...</span>
+        <button id="cleanup" class="secondary hidden" type="button">Clean up</button></p>
+    </section>
+
+    <section>
+      <h2>Sonic Mania (Data.rsdk)</h2>
+      <p class="dim">Use the Data.rsdk from your own copy of Sonic Mania (for example the Steam version's install folder).
+        Optional: the app can be used for the retro games alone.</p>
+      <p id="mania-line"></p>
+      <label class="button" for="data-file" id="data-choose">Choose Data.rsdk</label>
+      <input id="data-file" type="file" accept=".rsdk">
+      <button id="mania-move" class="secondary hidden" type="button"></button>
+      <progress id="data-progress" class="hidden" max="100" value="0"></progress>
+      <p id="data-message"></p>
+    </section>
+
+    <section>
+      <h2>Saves and settings</h2>
+      <div id="file-groups"></div>
+      <p class="dim">Uploading replaces the file with the same name. While a game is running, uploads are applied on the next start.
+        A retro game's files download with the game's name in front (sonic1-SGame.bin); upload them under their own name (SGame.bin).</p>
+      <p id="save-message"></p>
+    </section>
+
+    <section id="retro-section">
+      <h2>Retro games (Sonic 1, 2 and CD)</h2>
+      <p class="dim">Played from your own data packs, and chosen in the game's Plus menu (Games).
+        With the pack from Sonic Origins alone a game has no sound (Origins keeps its music elsewhere: see Sonic Origins
+        audio below); add the pack of the earlier release and its music and sound effects are used. The earlier Sonic 1 and 2 packs and the mobile Sonic CD
+        pack also play on their own. New packs show up after "Restart game".</p>
+      <p><label><input id="mania-audio" type="checkbox"> Fill missing music and sounds from Sonic Mania</label></p>
+      <p class="dim">With Sonic Mania's Data.rsdk installed: sounds the packs lack (all of them with the Origins pack alone,
+        and the Drop Dash, Knuckles' and Amy's moves otherwise) and the zones Mania remixed (Green Hill, Chemical Plant,
+        Oil Ocean, Stardust Speedway, Metallic Madness, the jingles).</p>
+      <p><label><input id="mania-similar" type="checkbox"> Also give other zones a Mania track of similar feel</label></p>
+      <p class="dim">For example Emerald Hill plays Green Hill and Casino Night plays Studiopolis.</p>
+      <p><label><input id="mania-remixes" type="checkbox"> Play Sonic Mania's remixes in their zones</label></p>
+      <p class="dim">Green Hill, Chemical Plant, Oil Ocean, Stardust Speedway and Metallic Madness play Mania's remix (act 1
+        or act 2, as the act) even when the earlier release's pack has the original.</p>
+      <p class="dim">These three apply the next time a retro game starts. They are the same settings as in the Plus menu.</p>
+      <div id="retro-games"></div>
+      <progress id="retro-progress" class="hidden" max="100" value="0"></progress>
+      <p id="retro-message"></p>
+    </section>
+
+    <section id="origins-section">
+      <h2>Sonic Origins audio</h2>
+      <p class="dim">Sonic Origins keeps the retro games' music and sounds in files of its own, not in its packs. Upload
+        them here and the device converts them: Sonic 1, 2 and CD then play Sonic Origins' own music and sounds, with the
+        earlier release's pack and Sonic Mania filling any gaps. They are in Sonic Origins' <code>image/x64/raw/sound</code>
+        folder (on Steam: right-click Sonic Origins, Manage, Browse local files). Choose all of them at once; the page
+        takes the ones listed below. The converted packs are written next to them.</p>
+      <p>Upload them to: <select id="origins-dest"></select></p>
+      <p id="origins-dest-line" class="dim"></p>
+      <label class="button" for="origins-files">Upload the files</label>
+      <input id="origins-files" type="file" multiple accept=".acb,.awb">
+      <button id="origins-convert" type="button" disabled>Convert</button>
+      <progress id="origins-progress" class="hidden" max="100" value="0"></progress>
+      <p id="origins-message"></p>
+      <div id="origins-files-list"></div>
+      <div id="origins-packs"></div>
+      <p><button id="origins-remove-files" class="secondary hidden" type="button">Remove the uploaded files</button></p>
+      <p class="dim">Converting takes a minute or two (the device does it, while you play if you like); a retro game being
+        played restarts when it is done. Afterwards the uploaded files are not needed: remove them to free the space.</p>
+    </section>
+
+    <section id="videos-section">
+      <h2>Sonic Origins videos</h2>
+      <p class="dim">Sonic CD's opening and endings, and the animated intro and outro Sonic Origins plays for each game,
+        with its Sonic Team logo. Upload them and the device converts them into videos the engine plays: Sonic CD shows its
+        own when its scripts call for them, and the intro plays when a new game starts, the outro before the credits
+        after the ending and the logo before the title screen. They are the <code>.usm</code> files in Sonic Origins'
+        <code>image/x64/raw/movie</code> folder: the ones listed below, not the <code>_4k</code> or <code>_anim</code>
+        copies. Choose them all at once; the page takes the ones it needs.</p>
+      <p>Upload them to: <select id="videos-dest"></select></p>
+      <p id="videos-dest-line" class="dim"></p>
+      <label class="button" for="videos-files">Upload the files</label>
+      <input id="videos-files" type="file" multiple accept=".usm">
+      <button id="videos-convert" type="button" disabled>Convert</button>
+      <progress id="videos-progress" class="hidden" max="100" value="0"></progress>
+      <p id="videos-message"></p>
+      <div id="videos-files-list"></div>
+      <div id="videos-packs"></div>
+      <p><button id="videos-remove-files" class="secondary hidden" type="button">Remove the uploaded files</button></p>
+      <p class="dim">Every frame of the videos is decoded and encoded again, which takes the device a long while (an hour or
+        more; you can play meanwhile, a little slower). A retro game being played restarts when it is done. Afterwards the
+        uploaded files are not needed: remove them to free the space.</p>
+    </section>
+
+    <section id="mods-section">
+      <h2>Mods</h2>
+      <p class="dim">Mods for the engine's mod loader: a folder with a <code>mod.ini</code> and the game files it changes.
+        Choose a mod's folder, or a folder holding several mods; unzip a downloaded mod first. Mods go where
+        "Store packs and mods on" says, and are on once uploaded. Sonic 1, 2 and CD mods work too, in their game.</p>
+      <label class="button" for="mod-folder">Upload a mod folder</label>
+      <input id="mod-folder" type="file" webkitdirectory multiple>
+      <button id="mod-stop" class="secondary hidden" type="button">Stop</button>
+      <progress id="mod-progress" class="hidden" max="100" value="0"></progress>
+      <p id="mod-message"></p>
+      <div id="mod-list"></div>
+      <p class="dim">When two mods change the same file, the one higher in the list wins. Changes apply the next time a
+        game starts (choose Restart game in the Plus menu, or switch games there). A mod that was on when the game
+        started is in use until then, so replacing, moving or removing it finishes at the next start. Code mods (with
+        a LogicFile) are built for computers and do not load on Android.</p>
+    </section>
+
+    <section>
+      <h2>Plus DLC</h2>
+      <label><input id="plus-toggle" type="checkbox"> Turn on the Plus DLC (I own it)</label>
+      <p class="dim">Sonic Mania Plus (Encore mode, Mighty, Ray...) and Sonic Origins Plus (Amy, and Knuckles in Sonic CD).
+        Off by default, as the decompilation's licence requires. The game on the device restarts to apply it.</p>
+    </section>
+  </div>
+
+  <footer class="dim">
+    Sonic Mania Decompilation Plus<span id="app-version"></span> &middot;
+    <a href="https://github.com/pustal/Sonic-Mania-Decompilation-Plus" target="_blank" rel="noopener">github.com/pustal/Sonic-Mania-Decompilation-Plus</a>
+  </footer>
+</main>
+
+<script>
+'use strict';
+
+/**
+ * @typedef {{ present: boolean, size: number, location: 'tv'|'usb', mount: string, inUse: boolean,
+ *             pending: ''|'tv'|'usb' }} DataPackState
+ * @typedef {{ active: boolean, received: number, expected: number }} UploadState
+ * @typedef {{ version: string, mode: 'setup'|'game', freeBytes: number, safetyMarginBytes: number, persistent: boolean,
+ *             dataPack: DataPackState, plusEnabled: boolean, maniaAudio: boolean,
+ *             maniaSimilarMusic: boolean, maniaRemixes: boolean, restartPending: boolean,
+ *             upload: UploadState }} Status
+ * @typedef {{ name: string, size: number, mtime: number }} UserFile
+ * @typedef {{ id: string, title: string, files: UserFile[] }} GameFiles
+ * @typedef {{ state: 'missing'|'ready'|'unsupported'|'invalid', location?: 'tv'|'usb', path?: string, size?: number,
+ *             version?: string, standalone?: boolean, inUse?: boolean, pending: ''|'tv'|'usb' }} RetroPack
+ * @typedef {{ files: number, bytes: number, busy: boolean }} CleanupState
+ * @typedef {{ id: string, title: string, playable: boolean, sound: boolean, mode: string,
+ *             origins: RetroPack, classic: RetroPack }} RetroGame
+ * @typedef {{ mount: string, name: string, fileSystem: string, freeBytes: number, totalBytes: number,
+ *             writable: boolean, hasFolder: boolean, folder: string }} UsbDrive
+ * @typedef {{ tv: { folder: string, freeBytes: number, safetyMarginBytes: number },
+ *             drives: UsbDrive[], games: RetroGame[] }} RetroState
+ * @typedef {{ folder: string, name: string, author: string, version: string, description: string, game: string,
+ *             targetVersion: number, hasLogic: boolean, bytes: number, files: number, location: 'tv'|'usb',
+ *             mount: string, active: boolean, order: number, inUse: boolean, pending: boolean, removing: boolean,
+ *             shadowed: boolean }} Mod
+ * @typedef {{ folder: string, files: { file: File, path: string }[], bytes: number }} ModUpload
+ * @typedef {{ name: string, location?: 'tv'|'usb', mount?: string, size?: number }} OriginsFile
+ * @typedef {{ game: string, title: string, location?: 'tv'|'usb', size?: number, inUse?: boolean }} OriginsPack
+ * @typedef {{ available: boolean, convertible: boolean, running: boolean, percent: number, message: string,
+ *             files: OriginsFile[], packs: OriginsPack[] }} OriginsState
+ */
+
+/** Session-only so the PIN is forgotten when the tab closes. */
+const PIN_KEY = 'swm-pin';
+const REFRESH_MS = 2000;
+/** Must match Storage::kMaxUserFileBytes on the device. */
+const MAX_SAVE_BYTES = 4 * 1024 * 1024;
+
+/** Must match kUsbSafetyMarginBytes in TransferServer.cpp. */
+const USB_MARGIN_BYTES = 8 * 1024 * 1024;
+
+/** Where each game's packs come from, shown under its upload buttons. */
+const RETRO_HINTS = {
+  sonic1: { origins: 'Sonic1u.rsdk from Sonic Origins', classic: 'Data.rsdk of the 2013 release (Android: Data.rsdk.xmf in the APK)' },
+  sonic2: { origins: 'Sonic2u.rsdk from Sonic Origins', classic: 'Data.rsdk of the 2013 release (Android: Data.rsdk.xmf in the APK)' },
+  soniccd: { origins: 'SonicCDu.rsdk from Sonic Origins',
+    classic: 'Mobile release: Data.rsdk.xmf in the APK (plays on its own). Steam: Data.rsdk (sound only). Converted on the device' },
+};
+
+/** @type {Status | null} */
+let lastStatus = null;
+/** @type {RetroState | null} */
+let lastRetro = null;
+/** True while a pack upload or move runs (one at a time). */
+let packBusy = false;
+/** @type {Mod[]} */
+let lastMods = [];
+/** Set by the Stop button of a mod upload. */
+let modStopRequested = false;
+/** The mod whose Remove button was pressed once (a second press removes it). */
+let modRemoveArmed = '';
+/** Must match kMaxModFileBytes in TransferServer.cpp. */
+const MAX_MOD_FILE_BYTES = 256 * 1024 * 1024;
+/** Mod files sent at the same time (the device serves two requests at once). */
+const PARALLEL_MOD_UPLOADS = 2;
+
+/** The retro games' ids, from the last file listing (for the download-name prefix). */
+let retroGameIds = /** @type {string[]} */ ([]);
+
+/** @param {string} id @returns {HTMLElement} */
+function byId(id) {
+  const element = document.getElementById(id);
+  if (!element) throw new Error('Missing element #' + id);
+  return element;
+}
+
+/** @param {number} bytes @returns {string} */
+function humanBytes(bytes) {
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
+  return (unit === 0 ? value.toFixed(0) : value.toFixed(1)) + ' ' + units[unit];
+}
+
+/** @returns {string} */
+function pin() { return sessionStorage.getItem(PIN_KEY) || ''; }
+
+/**
+ * Calls the device's API with the PIN attached.
+ * @param {string} path
+ * @param {RequestInit} [init]
+ * @returns {Promise<Response>}
+ */
+async function api(path, init = {}) {
+  const headers = new Headers(init.headers);
+  headers.set('X-Pin', pin());
+  const response = await fetch(path, { ...init, headers });
+  if (response.status === 401) {
+    sessionStorage.removeItem(PIN_KEY);
+    showPinForm('Wrong PIN. Check the number on the device.');
+    throw new Error('unauthorised');
+  }
+  return response;
+}
+
+/** @param {string} [error] */
+function showPinForm(error) {
+  byId('pin-section').classList.remove('hidden');
+  byId('app').classList.add('hidden');
+  const message = byId('pin-error');
+  message.textContent = error || '';
+  message.classList.toggle('hidden', !error);
+}
+
+async function refreshStatus() {
+  const response = await api('/api/status');
+  /** @type {Status} */
+  const status = await response.json();
+  lastStatus = status;
+  byId('app-version').textContent = ' ' + status.version;
+
+  byId('pin-section').classList.add('hidden');
+  byId('app').classList.remove('hidden');
+
+  const statusLine = byId('status-line');
+  if (status.dataPack.present) {
+    statusLine.textContent = 'Game data installed (' + humanBytes(status.dataPack.size) + ').';
+    statusLine.className = 'ok';
+  } else if (lastRetro && lastRetro.games.some((g) => g.playable)) {
+    // Without Sonic Mania the retro games are offered whatever the toggle says (see main.cpp).
+    statusLine.textContent = 'Retro games ready (Sonic Mania not installed, which is fine).';
+    statusLine.className = 'ok';
+  } else {
+    statusLine.textContent = 'No game data yet. Upload Sonic Mania\'s Data.rsdk or a retro game pack below.';
+    statusLine.className = 'warn';
+  }
+
+  byId('space-line').textContent = 'Free space on the device: ' + humanBytes(status.freeBytes)
+    + (status.persistent ? '' : ' (temporary storage: lost on reboot)');
+  byId('restart-line').classList.toggle('hidden', !status.restartPending);
+  /** @type {HTMLInputElement} */ (byId('plus-toggle')).checked = status.plusEnabled;
+  /** @type {HTMLInputElement} */ (byId('mania-audio')).checked = status.maniaAudio;
+  const similar = /** @type {HTMLInputElement} */ (byId('mania-similar'));
+  similar.checked = status.maniaSimilarMusic;
+  similar.disabled = !status.maniaAudio;
+  const remixes = /** @type {HTMLInputElement} */ (byId('mania-remixes'));
+  remixes.checked = status.maniaRemixes;
+  remixes.disabled = !status.maniaAudio;
+  renderManiaPack();
+}
+
+/** The storage chosen in the "Store packs on" list: "tv" or a USB mount point. */
+function packDestination() {
+  return /** @type {HTMLSelectElement} */ (byId('pack-dest')).value || 'tv';
+}
+
+/** Free bytes and safety margin of the chosen storage. */
+function packSpace() { return spaceAt(packDestination()); }
+
+/** @param {string} dest "tv" or a USB mount point @returns {{ free: number, margin: number }} free bytes and safety margin there */
+function spaceAt(dest) {
+  if (!lastRetro) return { free: 0, margin: 0 };
+  if (dest === 'tv') return { free: lastRetro.tv.freeBytes, margin: lastRetro.tv.safetyMarginBytes };
+  const drive = lastRetro.drives.find((d) => d.mount === dest);
+  return { free: drive ? drive.freeBytes : 0, margin: USB_MARGIN_BYTES };
+}
+
+/** @param {string} dest "tv" or a USB mount point @returns {string} the dest= query for uploads and moves */
+function destinationQuery(dest) {
+  return dest === 'tv' ? 'dest=tv' : 'dest=usb&mount=' + encodeURIComponent(dest);
+}
+
+/**
+ * Where the Move button sends a pack now at @p location: to the device from a drive,
+ * otherwise to the drive chosen in "Store packs on" (or the first writable one).
+ * @param {'tv'|'usb'|undefined} location @returns {string | null} "tv", a mount point, or null (nowhere to go)
+ */
+function moveTarget(location) {
+  if (location === 'usb') return 'tv';
+  if (!lastRetro) return null;
+  const chosen = packDestination();
+  if (chosen !== 'tv') return chosen;
+  const drive = lastRetro.drives.find((d) => d.writable);
+  return drive ? drive.mount : null;
+}
+
+/** @param {string} target "tv" or a mount point @returns {string} */
+function targetName(target) {
+  if (target === 'tv') return 'the device';
+  const drive = lastRetro && lastRetro.drives.find((d) => d.mount === target);
+  return 'USB ' + (drive ? drive.name : target);
+}
+
+/**
+ * Moves a pack between the device and a USB drive, showing the copy's progress.
+ * @param {string} pack "mania" or "<game>-<edition>" @param {string} label @param {string} target
+ * @param {HTMLElement} message @param {HTMLProgressElement} progress
+ */
+async function movePack(pack, label, target, message, progress) {
+  if (packBusy) {
+    message.textContent = 'Wait for the current upload or move to finish.';
+    message.className = 'warn';
+    return;
+  }
+  packBusy = true;
+  progress.classList.remove('hidden');
+  progress.value = 0;
+  message.textContent = 'Moving ' + label + ' to ' + targetName(target) + '... keep this page open.';
+  message.className = '';
+  // The device reports the copy's progress in its status.
+  const poll = setInterval(async () => {
+    try {
+      const status = /** @type {Status} */ (await (await api('/api/status')).json());
+      if (status.upload.expected > 0) progress.value = Math.floor((status.upload.received / status.upload.expected) * 100);
+    } catch (error) { /* The next poll will tell. */ }
+  }, 1000);
+  const response = await api('/api/move?pack=' + encodeURIComponent(pack) + '&' + destinationQuery(target), { method: 'POST' });
+  clearInterval(poll);
+  packBusy = false;
+  progress.classList.add('hidden');
+  const text = await response.text();
+  message.textContent = !response.ok ? text
+    : text === 'staged' ? label + ' copied to ' + targetName(target) + '. It is in use now, so the move finishes at the next start.'
+    : label + ' moved to ' + targetName(target) + '.';
+  message.className = response.ok ? 'ok' : 'warn';
+  await Promise.all([refreshStatus(), refreshRetro(), refreshCleanup()]);
+}
+
+/** @param {''|'tv'|'usb'} pending @returns {string} a note for a staged replacement or move, or '' */
+function pendingNote(pending) {
+  if (!pending) return '';
+  return '. A new copy on ' + (pending === 'usb' ? 'the USB drive' : 'the device') + ' replaces it at the next start';
+}
+
+/** Leftovers of interrupted uploads, moves and conversions, and the button that removes them. */
+async function refreshCleanup() {
+  const state = /** @type {CleanupState} */ (await (await api('/api/cleanup')).json());
+  const line = byId('cleanup-line');
+  const button = byId('cleanup');
+  line.className = 'dim';
+  if (state.files === 0) {
+    line.textContent = 'No leftovers to clean up (the app keeps no cache).';
+    button.classList.add('hidden');
+    return;
+  }
+  line.textContent = 'Leftovers of interrupted uploads, moves or logs: ' + state.files + ' file(s), ' + humanBytes(state.bytes) + '.';
+  button.classList.remove('hidden');
+  /** @type {HTMLButtonElement} */ (button).disabled = state.busy || packBusy;
+}
+
+/** Sonic Mania's pack: where it is and its Move button. */
+function renderManiaPack() {
+  if (!lastStatus) return;
+  const pack = lastStatus.dataPack;
+  const line = byId('mania-line');
+  const move = byId('mania-move');
+  byId('data-choose').textContent = pack.present ? 'Replace Data.rsdk' : 'Choose Data.rsdk';
+  if (!pack.present) {
+    line.textContent = 'Not installed.';
+    line.className = 'dim';
+    move.classList.add('hidden');
+    return;
+  }
+  line.textContent = 'Installed on ' + (pack.location === 'usb' ? 'the USB drive' : 'the device') + ' (' + humanBytes(pack.size) + ')'
+    + pendingNote(pack.pending)
+    + (pack.inUse && !pack.pending ? '. In use now: a replacement or move takes effect at the next start.' : '.');
+  line.className = 'ok';
+  const target = moveTarget(pack.location);
+  move.classList.toggle('hidden', !target || pack.pending !== '');
+  if (target) move.textContent = 'Move to ' + targetName(target);
+}
+
+/** Updates the storage list, keeping the current choice; a writable USB drive is preferred (spares the device's space). */
+function renderPackDestinations() {
+  if (!lastRetro) return;
+  const select = /** @type {HTMLSelectElement} */ (byId('pack-dest'));
+  const previous = select.value;
+  select.replaceChildren();
+  for (const drive of lastRetro.drives.filter((d) => d.writable)) {
+    const option = document.createElement('option');
+    option.value = drive.mount;
+    option.textContent = 'USB ' + drive.name + ' (' + humanBytes(drive.freeBytes) + ' free)';
+    select.append(option);
+  }
+  const tv = document.createElement('option');
+  tv.value = 'tv';
+  tv.textContent = 'This device (' + humanBytes(lastRetro.tv.freeBytes) + ' free)';
+  select.append(tv);
+  if (Array.from(select.options).some((o) => o.value === previous)) select.value = previous;
+
+  const drive = lastRetro.drives.find((d) => d.mount === select.value);
+  byId('pack-folder').classList.toggle('hidden', !drive || drive.hasFolder);
+  renderManiaPack();
+  renderOriginsDestinations();
+  byId('pack-dest-line').textContent = drive
+    ? 'On the drive, Sonic Mania\'s Data.rsdk goes in the SonicWebMania folder, the retro packs in SonicWebMania/retro'
+      + ', Sonic Origins\' files in SonicWebMania/retro/origins and mods in SonicWebMania/mods'
+      + (drive.hasFolder ? '.' : ' (created with the first upload).')
+    : 'Packs go in the game\'s folder on the device.';
+}
+
+/**
+ * One pack row: state, where it is, and its upload / remove buttons.
+ * @param {RetroGame} game @param {'origins'|'classic'} edition
+ */
+function packRow(game, edition) {
+  const pack = game[edition];
+  const row = document.createElement('div');
+  row.className = 'pack';
+
+  const info = document.createElement('div');
+  info.className = 'info';
+  const name = document.createElement('div');
+  const label = edition === 'origins' ? 'Sonic Origins pack' : 'Earlier release pack';
+  if (pack.state === 'ready') {
+    name.append(label + ': ');
+    const where = document.createElement('span');
+    where.className = 'ok';
+    where.textContent = 'installed on the ' + (pack.location === 'usb' ? 'USB drive' : 'device') + ' (' + humanBytes(pack.size || 0) + ')'
+      + (pack.inUse ? ', in use now' : '') + pendingNote(pack.pending);
+    name.append(where);
+  } else if (pack.state === 'missing') {
+    name.textContent = label + ': not installed';
+  } else {
+    name.append(label + ': ');
+    const problem = document.createElement('span');
+    problem.className = 'warn';
+    problem.textContent = pack.state === 'unsupported'
+      ? 'old format, upload it here to convert it'
+      : 'not a usable pack, replace it';
+    name.append(problem);
+  }
+  const hint = document.createElement('div');
+  hint.className = 'dim';
+  hint.textContent = RETRO_HINTS[game.id] ? RETRO_HINTS[game.id][edition] : '';
+  info.append(name, hint);
+
+  const actions = document.createElement('div');
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.rsdk,.xmf';
+  input.id = 'retro-' + game.id + '-' + edition;
+  input.addEventListener('change', () => {
+    if (input.files && input.files[0]) uploadRetroPack(game, edition, input.files[0]).catch(() => undefined);
+    input.value = '';
+  });
+  const choose = document.createElement('label');
+  choose.className = 'button';
+  choose.htmlFor = input.id;
+  choose.textContent = pack.state === 'missing' ? 'Upload' : 'Replace';
+  actions.append(input, choose);
+  const target = pack.state === 'ready' && !pack.pending ? moveTarget(pack.location) : null;
+  if (target) {
+    const move = document.createElement('button');
+    move.type = 'button';
+    move.className = 'secondary';
+    move.textContent = 'Move to ' + targetName(target);
+    move.addEventListener('click', () => movePack(game.id + '-' + edition, game.title + ' (' + label + ')', target,
+      byId('retro-message'), /** @type {HTMLProgressElement} */ (byId('retro-progress'))).catch(() => undefined));
+    actions.append(' ', move);
+  }
+  // A pack the running game reads cannot be removed (the device refuses); replacing or moving it waits for the next start.
+  if (pack.state !== 'missing' && !pack.inUse) {
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'secondary';
+    remove.textContent = 'Remove';
+    remove.addEventListener('click', () => removeRetroPack(game, edition).catch(() => undefined));
+    actions.append(' ', remove);
+  }
+  row.append(info, actions);
+  return row;
+}
+
+async function refreshRetro() {
+  const response = await api('/api/retro');
+  /** @type {RetroState} */
+  const state = await response.json();
+  lastRetro = state;
+  renderPackDestinations();
+
+  const list = byId('retro-games');
+  list.replaceChildren();
+  for (const game of state.games) {
+    const block = document.createElement('div');
+    block.className = 'game';
+    const title = document.createElement('h3');
+    title.textContent = game.title;
+    const mode = document.createElement('p');
+    mode.className = game.playable ? (game.sound ? 'ok' : '') : 'dim';
+    mode.textContent = game.mode;
+    block.append(title, mode, packRow(game, 'origins'), packRow(game, 'classic'));
+    list.append(block);
+  }
+}
+
+/**
+ * Uploads one pack to the chosen storage (the device checks it, and converts Sonic CD's 2011 format).
+ * @param {RetroGame} game @param {'origins'|'classic'} edition @param {File} file
+ */
+async function uploadRetroPack(game, edition, file) {
+  const message = byId('retro-message');
+  const progress = /** @type {HTMLProgressElement} */ (byId('retro-progress'));
+  if (packBusy) {
+    message.textContent = 'Wait for the current upload to finish.';
+    message.className = 'warn';
+    return;
+  }
+  const header = String.fromCharCode(...new Uint8Array(await file.slice(0, 4).arrayBuffer()));
+  const oldCdPack = game.id === 'soniccd' && edition === 'classic' && header !== 'RSDK';
+  if (header !== 'RSDK' && !oldCdPack) {
+    message.textContent = file.name + ' is not an RSDK data pack.';
+    message.className = 'warn';
+    return;
+  }
+  const space = packSpace();
+  const needed = file.size * (oldCdPack ? 2 : 1) + space.margin; // Converting needs room for both copies.
+  if (needed > space.free) {
+    message.textContent = 'Not enough space there: needs ' + humanBytes(needed) + ', ' + humanBytes(space.free) + ' free.';
+    message.className = 'warn';
+    return;
+  }
+
+  const query = destinationQuery(packDestination());
+  packBusy = true;
+  progress.classList.remove('hidden');
+  progress.value = 0;
+  message.textContent = 'Uploading ' + file.name + ' (' + humanBytes(file.size) + ')... keep this page open.';
+  message.className = '';
+
+  const result = await new Promise((resolve) => {
+    const request = new XMLHttpRequest();
+    request.open('PUT', '/api/retro/' + game.id + '/' + edition + '?' + query);
+    request.setRequestHeader('X-Pin', pin());
+    request.upload.onprogress = (event) => {
+      if (!event.lengthComputable) return;
+      progress.value = Math.floor((event.loaded / event.total) * 100);
+      if (event.loaded === event.total && oldCdPack) message.textContent = 'Converting on the device...';
+    };
+    request.onload = () => resolve({ ok: request.status === 200, text: request.responseText });
+    request.onerror = () => resolve({ ok: false, text: 'Connection to the device was lost.' });
+    request.send(file);
+  });
+
+  packBusy = false;
+  progress.classList.add('hidden');
+  message.textContent = !result.ok ? result.text
+    : result.text === 'staged' ? game.title + ': pack received. The one in use is replaced at the next start.'
+    : game.title + ': pack installed. It is used from the next start.';
+  message.className = result.ok ? 'ok' : 'warn';
+  await Promise.all([refreshStatus(), refreshRetro(), refreshCleanup()]);
+}
+
+/** @param {RetroGame} game @param {'origins'|'classic'} edition */
+async function removeRetroPack(game, edition) {
+  const response = await api('/api/retro/' + game.id + '/' + edition, { method: 'DELETE' });
+  const message = byId('retro-message');
+  message.textContent = response.ok ? game.title + ': pack removed.' : await response.text();
+  message.className = response.ok ? '' : 'warn';
+  await Promise.all([refreshStatus(), refreshRetro(), refreshCleanup()]);
+}
+
+/**
+ * One group of the saves section: a heading, its files with download links,
+ * and an upload button.
+ * @param {string} title @param {string} game "" for Sonic Mania, else the retro game's id
+ * @param {UserFile[]} files
+ */
+function fileGroup(title, game, files) {
+  const block = document.createElement('div');
+  block.className = 'game';
+  const heading = document.createElement('h3');
+  heading.textContent = title;
+  const table = document.createElement('table');
+  const list = document.createElement('tbody');
+  table.append(list);
+
+  if (files.length === 0) {
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.textContent = 'No saves yet.';
+    cell.className = 'dim';
+    row.append(cell);
+    list.append(row);
+  }
+  const gameQuery = game ? '&game=' + encodeURIComponent(game) : '';
+  for (const file of files) {
+    const row = document.createElement('tr');
+    const name = document.createElement('td');
+    name.textContent = file.name + ' (' + humanBytes(file.size) + ')';
+    const action = document.createElement('td');
+    const link = document.createElement('a');
+    link.href = '/api/files/' + encodeURIComponent(file.name) + '?pin=' + encodeURIComponent(pin()) + gameQuery;
+    link.download = (game ? game + '-' : '') + file.name;
+    link.textContent = 'Download';
+    action.append(link);
+    row.append(name, action);
+    list.append(row);
+  }
+
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.bin,.ini';
+  input.multiple = true;
+  input.id = 'save-files-' + (game || 'mania');
+  input.addEventListener('change', () => {
+    if (input.files && input.files.length > 0) uploadSaves(input.files, game).catch(() => undefined);
+    input.value = '';
+  });
+  const upload = document.createElement('label');
+  upload.className = 'button';
+  upload.htmlFor = input.id;
+  upload.textContent = 'Upload ' + title + ' saves';
+  const actions = document.createElement('p');
+  actions.append(input, upload);
+
+  block.append(heading, table, actions);
+  return block;
+}
+
+async function refreshFiles() {
+  const response = await api('/api/files');
+  /** @type {{ files: UserFile[], games: GameFiles[] }} */
+  const body = await response.json();
+  retroGameIds = body.games.map((game) => game.id);
+  const groups = byId('file-groups');
+  groups.replaceChildren(fileGroup('Sonic Mania', '', body.files));
+  for (const game of body.games) groups.append(fileGroup(game.title, game.id, game.files));
+}
+
+/**
+ * Reads the first bytes of a file to check it really is an RSDK pack before uploading it.
+ * @param {File} file @returns {Promise<boolean>}
+ */
+async function looksLikeDataPack(file) {
+  const header = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+  return String.fromCharCode(...header) === 'RSDK';
+}
+
+/** @param {File} file */
+async function uploadDataPack(file) {
+  const message = byId('data-message');
+  /** @type {HTMLProgressElement} */
+  const progress = /** @type {HTMLProgressElement} */ (byId('data-progress'));
+
+  if (!(await looksLikeDataPack(file))) {
+    message.textContent = 'That file is not a Data.rsdk.';
+    message.className = 'warn';
+    return;
+  }
+  const space = packSpace();
+  if (lastRetro && file.size + space.margin > space.free) {
+    message.textContent = 'Not enough space on ' + targetName(packDestination()) + ': needs ' + humanBytes(file.size + space.margin)
+      + ', ' + humanBytes(space.free) + ' free.';
+    message.className = 'warn';
+    return;
+  }
+  if (packBusy) {
+    message.textContent = 'Wait for the current upload or move to finish.';
+    message.className = 'warn';
+    return;
+  }
+  packBusy = true;
+
+  progress.classList.remove('hidden');
+  progress.value = 0;
+  message.textContent = 'Uploading ' + humanBytes(file.size) + '... keep this page open.';
+  message.className = '';
+
+  // XMLHttpRequest, because fetch() cannot report upload progress.
+  const result = await new Promise((resolve) => {
+    const request = new XMLHttpRequest();
+    request.open('PUT', '/api/data?' + destinationQuery(packDestination()));
+    request.setRequestHeader('X-Pin', pin());
+    request.upload.onprogress = (event) => {
+      if (event.lengthComputable) progress.value = Math.floor((event.loaded / event.total) * 100);
+    };
+    request.onload = () => resolve({ ok: request.status === 200, text: request.responseText });
+    request.onerror = () => resolve({ ok: false, text: 'Connection to the device was lost.' });
+    request.send(file);
+  });
+
+  packBusy = false;
+  progress.classList.add('hidden');
+  if (result.ok) {
+    message.textContent = result.text === 'installed'
+      ? 'Done! The game is starting on the device.'
+      : 'Done! In the game, open the Plus menu and choose Restart game to use it.';
+    message.className = 'ok';
+  } else {
+    message.textContent = result.text;
+    message.className = 'warn';
+  }
+  await Promise.all([refreshStatus(), refreshRetro(), refreshCleanup()]);
+}
+
+/**
+ * Uploads saves or settings into Sonic Mania's folder (@p game "") or a retro game's.
+ * @param {FileList} files @param {string} game
+ */
+async function uploadSaves(files, game) {
+  const message = byId('save-message');
+  const results = [];
+  for (const file of Array.from(files)) {
+    if (file.size === 0 || file.size > MAX_SAVE_BYTES) {
+      results.push(file.name + ': not a save file');
+      continue;
+    }
+    // A downloaded "sonic1-SGame.bin" goes back as "SGame.bin" (into whichever retro game it is uploaded to).
+    const prefix = game ? retroGameIds.map((id) => id + '-').find((p) => file.name.startsWith(p)) : undefined;
+    const name = prefix ? file.name.slice(prefix.length) : file.name;
+    const query = game ? '?game=' + encodeURIComponent(game) : '';
+    const response = await api('/api/files/' + encodeURIComponent(name) + query, { method: 'PUT', body: file });
+    results.push(name + ': ' + (response.ok ? 'uploaded' : await response.text()));
+  }
+  message.textContent = results.join(' / ');
+  await Promise.all([refreshStatus(), refreshFiles()]);
+}
+
+// ---------------------------------------------------------------- mods
+
+async function refreshMods() {
+  const response = await api('/api/mods');
+  lastMods = (await response.json()).mods;
+  renderMods();
+}
+
+/** @param {Mod} mod @returns {string} where it is, for people */
+function modPlace(mod) {
+  if (mod.location === 'tv') return 'the device';
+  const drive = lastRetro && lastRetro.drives.find((d) => d.mount === mod.mount);
+  return 'USB ' + (drive ? drive.name : mod.mount);
+}
+
+function renderMods() {
+  const list = byId('mod-list');
+  list.replaceChildren();
+  if (lastMods.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'dim';
+    empty.textContent = 'No mods yet.';
+    list.append(empty);
+    return;
+  }
+  const ordered = lastMods.filter((m) => !m.shadowed);
+  for (const mod of lastMods) {
+    const row = document.createElement('div');
+    row.className = 'pack mod';
+
+    const info = document.createElement('div');
+    info.className = 'info';
+    const title = document.createElement('div');
+    const name = document.createElement('strong');
+    name.textContent = mod.name;
+    title.append(name, (mod.version ? ' ' + mod.version : '') + (mod.author ? ' by ' + mod.author : ''));
+    const details = document.createElement('div');
+    details.className = 'dim';
+    details.textContent = 'For ' + mod.game + '. Folder ' + mod.folder + ', ' + humanBytes(mod.bytes) + ' in ' + mod.files
+      + ' file' + (mod.files === 1 ? '' : 's') + ', on ' + modPlace(mod) + '.';
+    info.append(title, details);
+    if (mod.description) {
+      const description = document.createElement('div');
+      description.className = 'dim';
+      description.textContent = mod.description;
+      info.append(description);
+    }
+    const notes = [];
+    if (mod.inUse) notes.push('In use since the game started');
+    if (mod.pending) notes.push('a new copy replaces it at the next start');
+    if (mod.removing) notes.push('removed at the next start');
+    if (mod.shadowed) notes.push('not used: the copy on the device of the same folder is');
+    if (mod.hasLogic) notes.push('has code (a LogicFile), which only loads if it was built for Android');
+    if (notes.length) {
+      const note = document.createElement('div');
+      note.className = mod.hasLogic || mod.shadowed ? 'warn' : 'dim';
+      note.textContent = notes.join('; ') + '.';
+      info.append(note);
+    }
+
+    const actions = document.createElement('div');
+    if (!mod.shadowed && !mod.removing) {
+      const toggle = document.createElement('label');
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.checked = mod.active;
+      box.addEventListener('change', () => setModActive(mod, box.checked).catch(() => undefined));
+      toggle.append(box, ' On ');
+      actions.append(toggle);
+      const index = ordered.indexOf(mod);
+      for (const [label, delta] of /** @type {[string, number][]} */ ([['Up', -1], ['Down', 1]])) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'secondary';
+        button.textContent = label;
+        button.disabled = delta < 0 ? index === 0 : index === ordered.length - 1;
+        button.addEventListener('click', () => moveModInOrder(mod, delta).catch(() => undefined));
+        actions.append(button, ' ');
+      }
+      const target = mod.pending ? null : moveTarget(mod.location);
+      if (target) {
+        const move = document.createElement('button');
+        move.type = 'button';
+        move.className = 'secondary';
+        move.textContent = 'Move to ' + targetName(target);
+        move.addEventListener('click', () => moveMod(mod, target).catch(() => undefined));
+        actions.append(move, ' ');
+      }
+    }
+    if (!mod.removing) {
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'secondary';
+      remove.textContent = modRemoveArmed === mod.folder ? 'Remove: press again' : 'Remove';
+      remove.addEventListener('click', () => removeMod(mod).catch(() => undefined));
+      actions.append(remove);
+    }
+    row.append(info, actions);
+    list.append(row);
+  }
+}
+
+/** @param {string} text @param {''|'ok'|'warn'} [kind] */
+function modSay(text, kind = '') {
+  const message = byId('mod-message');
+  message.textContent = text;
+  message.className = kind;
+}
+
+/** @param {Mod} mod @param {boolean} on */
+async function setModActive(mod, on) {
+  const response = await api('/api/mods/' + encodeURIComponent(mod.folder) + '/active?on=' + (on ? '1' : '0'), { method: 'PUT' });
+  if (!response.ok) modSay(await response.text(), 'warn');
+  else modSay(mod.name + (on ? ' is on' : ' is off') + ' from the next time a game starts.', 'ok');
+  await refreshMods();
+}
+
+/** @param {Mod} mod @param {number} delta */
+async function moveModInOrder(mod, delta) {
+  const response = await api('/api/mods/' + encodeURIComponent(mod.folder) + '/order?delta=' + delta, { method: 'POST' });
+  if (!response.ok) modSay(await response.text(), 'warn');
+  await refreshMods();
+}
+
+/** @param {Mod} mod @param {string} target */
+async function moveMod(mod, target) {
+  if (packBusy) { modSay('Wait for the current upload or move to finish.', 'warn'); return; }
+  packBusy = true;
+  const progress = /** @type {HTMLProgressElement} */ (byId('mod-progress'));
+  progress.classList.remove('hidden');
+  progress.value = 0;
+  modSay('Moving ' + mod.name + ' to ' + targetName(target) + '... keep this page open.');
+  const poll = setInterval(async () => {
+    try {
+      const status = /** @type {Status} */ (await (await api('/api/status')).json());
+      if (status.upload.expected > 0) progress.value = Math.floor((status.upload.received / status.upload.expected) * 100);
+    } catch (error) { /* The next poll will tell. */ }
+  }, 1000);
+  const response = await api('/api/mods/' + encodeURIComponent(mod.folder) + '/move?' + destinationQuery(target), { method: 'POST' });
+  clearInterval(poll);
+  packBusy = false;
+  progress.classList.add('hidden');
+  const text = await response.text();
+  modSay(!response.ok ? text
+    : text === 'staged' ? mod.name + ' copied to ' + targetName(target) + '. It is in use, so the move finishes at the next start.'
+    : mod.name + ' moved to ' + targetName(target) + '.', response.ok ? 'ok' : 'warn');
+  await Promise.all([refreshMods(), refreshRetro(), refreshCleanup()]);
+}
+
+/** @param {Mod} mod */
+async function removeMod(mod) {
+  if (modRemoveArmed !== mod.folder) {
+    modRemoveArmed = mod.folder; // Ask for a second press.
+    renderMods();
+    return;
+  }
+  modRemoveArmed = '';
+  const response = await api('/api/mods/' + encodeURIComponent(mod.folder), { method: 'DELETE' });
+  const text = await response.text();
+  modSay(!response.ok ? text
+    : text === 'staged' ? mod.name + ' is off, and removed at the next start (it is in use).'
+    : mod.name + ' removed.', response.ok ? 'ok' : 'warn');
+  await Promise.all([refreshMods(), refreshRetro()]);
+}
+
+/**
+ * Groups the chosen files into mods: each folder with a mod.ini is one, named
+ * after the folder (the chosen folder itself, or folders inside it).
+ * @param {File[]} files @returns {{ mods: ModUpload[], skipped: number, tooBig: string[] }}
+ */
+function planModUpload(files) {
+  /** @param {File} file @returns {string} */
+  const pathOf = (file) => file.webkitRelativePath || file.name;
+  // Folders holding a mod.ini, outermost first, so a mod.ini inside a mod stays part of it.
+  const roots = files.map(pathOf).filter((path) => path.split('/').pop().toLowerCase() === 'mod.ini')
+    .map((path) => path.slice(0, path.length - 'mod.ini'.length)).filter((root) => root !== '')
+    .sort((a, b) => a.length - b.length);
+  const outer = roots.filter((root, i) => !roots.slice(0, i).some((other) => root.startsWith(other)));
+  /** @type {Map<string, ModUpload>} */
+  const mods = new Map();
+  let skipped = 0;
+  const tooBig = [];
+  for (const file of files) {
+    const path = pathOf(file);
+    const root = outer.find((r) => path.startsWith(r));
+    const relative = root ? path.slice(root.length) : '';
+    const parts = relative.split('/');
+    if (!root || parts.some((part) => part.startsWith('.')) || /^(thumbs\.db|desktop\.ini)$/i.test(parts[parts.length - 1])) {
+      skipped++;
+      continue;
+    }
+    if (file.size > MAX_MOD_FILE_BYTES) { tooBig.push(relative); continue; }
+    const folder = root.slice(0, -1).split('/').pop() || '';
+    if (!mods.has(root)) mods.set(root, { folder, files: [], bytes: 0 });
+    const upload = /** @type {ModUpload} */ (mods.get(root));
+    // The engine opens "mod.ini" exactly; FAT drives don't mind the case, the device does.
+    upload.files.push({ file, path: relative.toLowerCase() === 'mod.ini' ? 'mod.ini' : relative });
+    upload.bytes += file.size;
+  }
+  return { mods: Array.from(mods.values()), skipped, tooBig };
+}
+
+/**
+ * PUTs @p body with upload progress.
+ * @param {string} url @param {Blob} body @param {(fraction: number) => void} onProgress
+ * @returns {Promise<{ ok: boolean, text: string }>}
+ */
+function putWithProgress(url, body, onProgress) {
+  return new Promise((resolve) => {
+    const request = new XMLHttpRequest();
+    request.open('PUT', url);
+    request.setRequestHeader('X-Pin', pin());
+    request.upload.onprogress = (event) => { if (event.lengthComputable) onProgress(event.loaded / event.total); };
+    request.onload = () => resolve({ ok: request.status === 200, text: request.responseText });
+    request.onerror = () => resolve({ ok: false, text: 'Connection to the device was lost.' });
+    request.send(body);
+  });
+}
+
+/** Uploads the mods in the chosen folder, one after the other, a few files at a time. @param {File[]} files */
+async function uploadMods(files) {
+  if (packBusy) { modSay('Wait for the current upload or move to finish.', 'warn'); return; }
+  const plan = planModUpload(files);
+  if (plan.mods.length === 0) {
+    modSay('No mod there: a mod is a folder with a mod.ini in it.', 'warn');
+    return;
+  }
+  const totalBytes = plan.mods.reduce((sum, mod) => sum + mod.bytes, 0);
+  const space = packSpace();
+  if (totalBytes + space.margin > space.free) {
+    modSay('Not enough space there: needs ' + humanBytes(totalBytes + space.margin) + ', ' + humanBytes(space.free) + ' free.', 'warn');
+    return;
+  }
+
+  const dest = destinationQuery(packDestination());
+  const progress = /** @type {HTMLProgressElement} */ (byId('mod-progress'));
+  const stop = byId('mod-stop');
+  packBusy = true;
+  modStopRequested = false;
+  progress.classList.remove('hidden');
+  stop.classList.remove('hidden');
+  let sentBytes = 0;
+  const results = [];
+  for (const mod of plan.mods) {
+    if (modStopRequested) break;
+    const modQuery = 'mod=' + encodeURIComponent(mod.folder) + '&' + dest;
+    const begin = await api('/api/mods/upload/begin?' + modQuery, { method: 'POST' });
+    if (!begin.ok) { results.push(mod.folder + ': ' + await begin.text()); continue; }
+
+    const inFlight = new Array(PARALLEL_MOD_UPLOADS).fill(0);
+    let next = 0, failed = 0, lastError = '';
+    const render = () => {
+      const sent = sentBytes + inFlight.reduce((a, b) => a + b, 0);
+      progress.value = totalBytes ? Math.floor((sent / totalBytes) * 100) : 100;
+      modSay('Uploading ' + mod.folder + ': ' + humanBytes(sent) + ' of ' + humanBytes(totalBytes) + '... keep this page open.');
+    };
+    /** @param {number} worker */
+    const runWorker = async (worker) => {
+      while (!modStopRequested && failed === 0 && next < mod.files.length) {
+        const job = mod.files[next++];
+        const url = '/api/mods/upload/file?' + modQuery + '&path=' + encodeURIComponent(job.path);
+        const onProgress = (/** @type {number} */ fraction) => { inFlight[worker] = fraction * job.file.size; render(); };
+        let result = await putWithProgress(url, job.file, onProgress);
+        if (!result.ok && result.text.startsWith('Connection')) result = await putWithProgress(url, job.file, onProgress);
+        inFlight[worker] = 0;
+        sentBytes += job.file.size;
+        if (!result.ok) { failed++; lastError = job.path + ': ' + result.text; }
+        render();
+      }
+    };
+    await Promise.all(Array.from({ length: PARALLEL_MOD_UPLOADS }, (_, worker) => runWorker(worker)));
+    if (modStopRequested) { results.push(mod.folder + ': stopped'); break; }
+    if (failed) { results.push(mod.folder + ': ' + lastError); continue; }
+
+    const finish = await api('/api/mods/upload/finish?' + modQuery, { method: 'POST' });
+    const text = await finish.text();
+    results.push(!finish.ok ? mod.folder + ': ' + text
+      : text === 'staged' ? mod.folder + ' received (it replaces the one in use at the next start)'
+      : mod.folder + ' installed');
+  }
+
+  packBusy = false;
+  progress.classList.add('hidden');
+  stop.classList.add('hidden');
+  const problems = results.some((line) => line.includes(': '));
+  modSay(results.join('. ') + '.'
+    + (plan.tooBig.length ? ' Skipped files too big for the device: ' + plan.tooBig.join(', ') + '.' : '')
+    + (plan.skipped ? ' Skipped ' + plan.skipped + ' hidden or stray file(s).' : '')
+    + (problems ? '' : ' Mods load the next time a game starts.'), problems ? 'warn' : 'ok');
+  await Promise.all([refreshMods(), refreshRetro(), refreshCleanup()]);
+}
+
+
+// ---------------------
+// Sonic Origins audio and videos
+// ---------------------
+
+/**
+ * The two Sonic Origins sections, which work the same way: upload files from
+ * one of its folders, have the device convert them, manage what it wrote.
+ * @typedef {'audio'|'videos'} OriginsKind
+ */
+const ORIGINS_SECTIONS = {
+  audio: {
+    prefix: 'origins',
+    folder: 'image/x64/raw/sound',
+    accept: '.acb,.awb',
+    converted: 'Sonic Origins audio',
+    sizes: 'The files are about 380 MB and the converted packs about 340 MB',
+    /** @param {string} name @returns {string} */
+    game: (name) => ({ HITE: 'all three games', STH1: 'Sonic 1 (and three of Sonic 2\'s jingles)', STH2: 'Sonic 2', SCD: 'Sonic CD' })[name.split('_')[0]] || '',
+  },
+  videos: {
+    prefix: 'videos',
+    folder: 'image/x64/raw/movie',
+    accept: '.usm',
+    converted: 'Sonic Origins videos',
+    sizes: 'The files are about 360 MB and the converted packs about 120 MB',
+    /** @param {string} name @returns {string} */
+    game: (name) => name.startsWith('sonicteam') ? 'all three games (the Sonic Team logo)'
+      : name.includes('sonic1') ? 'Sonic 1' : name.includes('sonic2') ? 'Sonic 2' : 'Sonic CD',
+  },
+};
+/** @type {Record<OriginsKind, OriginsState | null>} */
+const lastOrigins = { audio: null, videos: null };
+/** Polls a running conversion. @type {Record<OriginsKind, number>} */
+const originsPoll = { audio: 0, videos: 0 };
+
+/** @param {OriginsKind} kind @param {string} id @returns {HTMLElement} the section's element "<prefix>-<id>" */
+function originsElement(kind, id) { return byId(ORIGINS_SECTIONS[kind].prefix + '-' + id); }
+
+/** @param {OriginsKind} kind @returns {string} the storage chosen in the section: "tv" or a USB mount point */
+function originsDestination(kind) {
+  return /** @type {HTMLSelectElement} */ (originsElement(kind, 'dest')).value || 'tv';
+}
+
+/**
+ * Fills a section's storage list (the device and each writable drive), keeping its
+ * choice; until one is made it follows "Store packs and mods on".
+ */
+function renderOriginsDestinations() {
+  if (!lastRetro) return;
+  for (const kind of /** @type {OriginsKind[]} */ (['audio', 'videos'])) {
+    const select = /** @type {HTMLSelectElement} */ (originsElement(kind, 'dest'));
+    const previous = select.dataset.chosen === '1' ? select.value : packDestination();
+    select.replaceChildren();
+    for (const drive of lastRetro.drives.filter((d) => d.writable)) {
+      const option = document.createElement('option');
+      option.value = drive.mount;
+      option.textContent = 'USB ' + drive.name + ' (' + humanBytes(drive.freeBytes) + ' free)';
+      select.append(option);
+    }
+    const tv = document.createElement('option');
+    tv.value = 'tv';
+    tv.textContent = 'This device (' + humanBytes(lastRetro.tv.freeBytes) + ' free)';
+    select.append(tv);
+    select.value = Array.from(select.options).some((o) => o.value === previous) ? previous : select.options[0].value;
+    originsElement(kind, 'dest-line').textContent = select.value === 'tv'
+      ? 'In the game\'s folder on the device (retro/origins). ' + ORIGINS_SECTIONS[kind].sizes + '.'
+      : 'On the drive, in SonicWebMania/retro/origins (created with the first upload).';
+  }
+}
+
+/** @param {OriginsKind} kind @param {string} text @param {string} [tone] '', 'ok' or 'warn' */
+function originsSay(kind, text, tone = '') {
+  const message = originsElement(kind, 'message');
+  message.textContent = text;
+  message.className = tone;
+}
+
+/** @param {OriginsKind} kind */
+async function refreshOrigins(kind) {
+  const state = /** @type {OriginsState} */ (await (await api('/api/origins/' + kind)).json());
+  lastOrigins[kind] = state;
+  const section = ORIGINS_SECTIONS[kind];
+
+  const list = originsElement(kind, 'files-list');
+  list.replaceChildren();
+  const table = document.createElement('table');
+  const body = document.createElement('tbody');
+  for (const file of state.files) {
+    const row = document.createElement('tr');
+    const name = document.createElement('td');
+    name.textContent = file.name;
+    const game = document.createElement('td');
+    game.className = 'dim';
+    game.textContent = section.game(file.name);
+    const where = document.createElement('td');
+    where.className = file.location ? 'ok' : 'dim';
+    where.textContent = file.location
+      ? (file.location === 'usb' ? 'on the USB drive' : 'on the device') + ' (' + humanBytes(file.size || 0) + ')'
+      : 'not uploaded';
+    row.append(name, game, where);
+    body.append(row);
+  }
+  table.append(body);
+  list.append(table);
+
+  const packs = originsElement(kind, 'packs');
+  packs.replaceChildren();
+  for (const pack of state.packs) {
+    const row = document.createElement('div');
+    row.className = 'pack';
+    const info = document.createElement('div');
+    info.append(pack.title + ': ');
+    const where = document.createElement('span');
+    where.className = pack.location ? 'ok' : 'dim';
+    where.textContent = pack.location
+      ? 'converted, on the ' + (pack.location === 'usb' ? 'USB drive' : 'device') + ' (' + humanBytes(pack.size || 0) + ')'
+        + (pack.inUse ? ', in use now' : '')
+      : 'not converted';
+    info.append(where);
+    row.append(info);
+    if (pack.location && !pack.inUse) {
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'secondary';
+      remove.textContent = 'Remove';
+      remove.addEventListener('click', () => removeOriginsPack(kind, pack).catch(() => undefined));
+      row.append(remove);
+    }
+    packs.append(row);
+  }
+
+  const uploaded = state.files.filter((f) => f.location);
+  const convert = /** @type {HTMLButtonElement} */ (originsElement(kind, 'convert'));
+  convert.disabled = !state.available || state.running || packBusy || uploaded.length === 0;
+  convert.title = !state.convertible ? 'This build of the app cannot convert them.'
+    : state.available ? '' : 'The game must be running on the device.';
+  originsElement(kind, 'remove-files').classList.toggle('hidden', uploaded.length === 0 || state.running);
+
+  const progress = /** @type {HTMLProgressElement} */ (originsElement(kind, 'progress'));
+  progress.classList.toggle('hidden', !state.running);
+  progress.value = state.percent;
+  if (state.running) {
+    originsSay(kind, state.message + ' ' + state.percent + '%');
+    if (!originsPoll[kind]) originsPoll[kind] = setInterval(() => refreshOrigins(kind).catch(() => undefined), 1000);
+  } else if (originsPoll[kind]) {
+    clearInterval(originsPoll[kind]);
+    originsPoll[kind] = 0;
+    originsSay(kind, state.message, state.message.includes('Failed') || state.message.startsWith('No ') ? 'warn' : 'ok');
+    refreshCleanup().catch(() => undefined);
+  }
+}
+
+/** Refreshes both sections. */
+function refreshAllOrigins() { return Promise.all([refreshOrigins('audio'), refreshOrigins('videos')]); }
+
+/**
+ * Uploads the section's files among @p files (one at a time), skipping the others.
+ * @param {OriginsKind} kind @param {File[]} files
+ */
+async function uploadOriginsFiles(kind, files) {
+  const state = lastOrigins[kind];
+  if (!state) return;
+  if (packBusy) {
+    originsSay(kind, 'Wait for the current upload or move to finish.', 'warn');
+    return;
+  }
+  // Names as the device expects them, whatever case the computer gave them.
+  const wanted = new Map(state.files.map((f) => [f.name.toLowerCase(), f.name]));
+  const chosen = files.filter((f) => wanted.has(f.name.toLowerCase()));
+  const skipped = files.length - chosen.length;
+  if (chosen.length === 0) {
+    originsSay(kind, 'None of those are the files listed below (from Sonic Origins\' ' + ORIGINS_SECTIONS[kind].folder + ' folder).', 'warn');
+    return;
+  }
+  const total = chosen.reduce((sum, f) => sum + f.size, 0);
+  const dest = originsDestination(kind);
+  const space = spaceAt(dest);
+  if (total + space.margin > space.free) {
+    originsSay(kind, 'Not enough space there: needs ' + humanBytes(total + space.margin) + ', ' + humanBytes(space.free) + ' free.', 'warn');
+    return;
+  }
+
+  packBusy = true;
+  const progress = /** @type {HTMLProgressElement} */ (originsElement(kind, 'progress'));
+  progress.classList.remove('hidden');
+  progress.value = 0;
+  const query = destinationQuery(dest);
+  let sent = 0;
+  const problems = [];
+  for (const file of chosen) {
+    originsSay(kind, 'Uploading ' + file.name + ' (' + humanBytes(file.size) + ')... keep this page open.');
+    const name = /** @type {string} */ (wanted.get(file.name.toLowerCase()));
+    const result = await putWithProgress('/api/origins/' + kind + '/files/' + encodeURIComponent(name) + '?' + query, file,
+      (fraction) => { progress.value = Math.floor(((sent + fraction * file.size) / total) * 100); });
+    if (!result.ok) problems.push(name + ': ' + result.text);
+    sent += file.size;
+  }
+  packBusy = false;
+  progress.classList.add('hidden');
+  const note = skipped ? ' Skipped ' + skipped + ' other file(s).' : '';
+  if (problems.length) originsSay(kind, problems.join(' ') + note, 'warn');
+  else originsSay(kind, 'Uploaded ' + chosen.length + ' file(s).' + note + ' Press Convert when they are all there.', 'ok');
+  await Promise.all([refreshAllOrigins(), refreshStatus(), refreshRetro()]);
+}
+
+/** @param {OriginsKind} kind */
+async function convertOrigins(kind) {
+  const response = await api('/api/origins/' + kind + '/convert', { method: 'POST' });
+  if (!response.ok) {
+    originsSay(kind, await response.text(), 'warn');
+    return;
+  }
+  originsSay(kind, 'Converting on the device...');
+  await refreshOrigins(kind);
+}
+
+/** @param {OriginsKind} kind @param {OriginsPack} pack */
+async function removeOriginsPack(kind, pack) {
+  const response = await api('/api/origins/' + kind + '/packs/' + pack.game, { method: 'DELETE' });
+  originsSay(kind, response.ok ? pack.title + ': ' + ORIGINS_SECTIONS[kind].converted + ' removed.' : await response.text(),
+    response.ok ? '' : 'warn');
+  await Promise.all([refreshOrigins(kind), refreshStatus()]);
+}
+
+for (const kind of /** @type {OriginsKind[]} */ (['audio', 'videos'])) {
+  originsElement(kind, 'files').addEventListener('change', (event) => {
+    const input = /** @type {HTMLInputElement} */ (event.target);
+    const files = input.files ? Array.from(input.files) : [];
+    if (files.length > 0) uploadOriginsFiles(kind, files).catch((error) => originsSay(kind, String(error), 'warn'));
+    input.value = '';
+  });
+  originsElement(kind, 'dest').addEventListener('change', () => {
+    originsElement(kind, 'dest').dataset.chosen = '1'; // From now on the list keeps this choice.
+    renderOriginsDestinations();
+  });
+  originsElement(kind, 'convert').addEventListener('click', () => { convertOrigins(kind).catch(() => undefined); });
+  originsElement(kind, 'remove-files').addEventListener('click', async () => {
+    const response = await api('/api/origins/' + kind + '/files', { method: 'DELETE' });
+    originsSay(kind, await response.text(), response.ok ? 'ok' : 'warn');
+    await Promise.all([refreshOrigins(kind), refreshStatus(), refreshRetro()]);
+  });
+}
+
+byId('pin-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const input = /** @type {HTMLInputElement} */ (byId('pin-input'));
+  sessionStorage.setItem(PIN_KEY, input.value.trim());
+  try {
+    await Promise.all([refreshStatus(), refreshFiles(), refreshRetro(), refreshCleanup()]);
+    await Promise.all([refreshMods(), refreshAllOrigins()]); // After the drives (refreshRetro), which name where each is.
+  } catch (error) {
+    // showPinForm() already explained a wrong PIN.
+  }
+});
+
+byId('data-file').addEventListener('change', (event) => {
+  const input = /** @type {HTMLInputElement} */ (event.target);
+  if (input.files && input.files[0]) uploadDataPack(input.files[0]).catch(() => undefined);
+  input.value = '';
+});
+
+byId('plus-toggle').addEventListener('change', async (event) => {
+  const checked = /** @type {HTMLInputElement} */ (event.target).checked;
+  await api('/api/settings?plusEnabled=' + (checked ? '1' : '0'), { method: 'PUT' });
+  await refreshStatus();
+});
+
+byId('pack-dest').addEventListener('change', () => {
+  renderPackDestinations();
+  refreshRetro().then(() => renderMods()).catch(() => undefined);
+});
+
+byId('mania-move').addEventListener('click', () => {
+  const target = lastStatus ? moveTarget(lastStatus.dataPack.location) : null;
+  if (target) {
+    movePack('mania', 'Sonic Mania\'s Data.rsdk', target, byId('data-message'),
+      /** @type {HTMLProgressElement} */ (byId('data-progress'))).catch(() => undefined);
+  }
+});
+
+byId('cleanup').addEventListener('click', async () => {
+  const response = await api('/api/cleanup', { method: 'POST' });
+  const line = byId('cleanup-line');
+  const text = await response.text();
+  await refreshCleanup();
+  line.textContent = text;
+  line.className = response.ok ? 'ok' : 'warn';
+});
+
+byId('mania-audio').addEventListener('change', async (event) => {
+  const checked = /** @type {HTMLInputElement} */ (event.target).checked;
+  await api('/api/settings?maniaAudio=' + (checked ? '1' : '0'), { method: 'PUT' });
+  await refreshStatus();
+});
+
+byId('mania-similar').addEventListener('change', async (event) => {
+  const checked = /** @type {HTMLInputElement} */ (event.target).checked;
+  await api('/api/settings?maniaSimilarMusic=' + (checked ? '1' : '0'), { method: 'PUT' });
+  await refreshStatus();
+});
+
+byId('mania-remixes').addEventListener('change', async (event) => {
+  const checked = /** @type {HTMLInputElement} */ (event.target).checked;
+  await api('/api/settings?maniaRemixes=' + (checked ? '1' : '0'), { method: 'PUT' });
+  await refreshStatus();
+});
+
+byId('pack-folder').addEventListener('click', async () => {
+  const response = await api('/api/retro/usb-folder?mount=' + encodeURIComponent(packDestination()), { method: 'POST' });
+  const message = byId('retro-message');
+  message.textContent = response.ok ? 'Folder created.' : await response.text();
+  message.className = response.ok ? 'ok' : 'warn';
+  await refreshRetro();
+});
+
+byId('mod-folder').addEventListener('change', (event) => {
+  const input = /** @type {HTMLInputElement} */ (event.target);
+  // Copy the list first: clearing the input below empties the live FileList.
+  const files = input.files ? Array.from(input.files) : [];
+  if (files.length > 0) uploadMods(files).catch((error) => modSay(String(error), 'warn'));
+  input.value = '';
+});
+
+byId('mod-stop').addEventListener('click', () => { modStopRequested = true; });
+
+if (pin()) {
+  Promise.all([refreshStatus(), refreshFiles(), refreshRetro(), refreshCleanup()])
+    .then(() => Promise.all([refreshMods(), refreshAllOrigins()])).catch(() => undefined);
+}
+setInterval(() => {
+  if (!pin() || byId('app').classList.contains('hidden')) return;
+  refreshStatus().catch(() => undefined);
+  // A conversion may also be started from the device's Plus menu.
+  for (const kind of /** @type {OriginsKind[]} */ (['audio', 'videos'])) {
+    if (!originsPoll[kind] && !packBusy) refreshOrigins(kind).catch(() => undefined);
+  }
+}, REFRESH_MS);
+</script>
+</body>
+</html>
