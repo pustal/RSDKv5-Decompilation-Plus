@@ -639,6 +639,16 @@ void RSDK::Plus::AddMenuAction(const std::string &label, void (*action)())
 
 void RSDK::Plus::SetFrameCallback(void (*callback)()) { plus.frameCallback = callback; }
 
+void RSDK::Plus::SetUpdateSource(const UpdateSource &source)
+{
+    UpdateSource &current = CurrentUpdateSource();
+    if (!source.repository.empty())
+        current.repository = source.repository;
+    current.version     = source.version;
+    current.canOpenPage = source.canOpenPage;
+    current.howToUpdate = source.howToUpdate;
+}
+
 bool32 RSDK::Plus::MenuOpen() { return InDevMenu(); }
 
 RSDK::Plus::Settings RSDK::Plus::CurrentSettings()

@@ -118,7 +118,10 @@ void MoveSelection(const MenuInput &input, int32 count)
         menu.selection = (menu.selection + 1) % count;
 }
 
-/** Splits @p text into lines of at most @p width characters, at spaces. */
+/**
+ * Splits @p text into lines of at most @p width characters, at spaces. A word
+ * longer than a line (a web address) is cut into lines of its own.
+ */
 std::vector<std::string> WrapText(const std::string &text, int32 width)
 {
     std::vector<std::string> lines;
@@ -128,7 +131,17 @@ std::vector<std::string> WrapText(const std::string &text, int32 width)
         size_t end = text.find(' ', pos);
         if (end == std::string::npos)
             end = text.size();
-        const std::string word = text.substr(pos, end - pos);
+        std::string word = text.substr(pos, end - pos);
+        if (width > 0 && (int32)word.size() > width) {
+            if (!line.empty()) {
+                lines.push_back(line);
+                line.clear();
+            }
+            while ((int32)word.size() > width) {
+                lines.push_back(word.substr(0, width));
+                word.erase(0, width);
+            }
+        }
         if (!line.empty() && (int32)(line.size() + 1 + word.size()) > width) {
             lines.push_back(line);
             line.clear();
@@ -634,13 +647,21 @@ void Page_Updates()
         case UpdateState::Failed: line = "Could not check: " + status.error + "."; lineColor = kWarnColor; break;
     }
 
-    const std::vector<std::string> items = { "Check again", "Open the releases page", "Back" };
+    // "Open the releases page" only where a browser can open (not on a TV: SetUpdateSource()).
+    const bool canOpen             = OpenReleasesPageAvailable();
+    std::vector<std::string> items = { "Check again" };
+    if (canOpen)
+        items.push_back("Open the releases page");
+    items.push_back("Back");
+    const int32 backItem = (int32)items.size() - 1;
     const std::vector<uint32> colors(items.size(), kItemColor);
+    const UpdateSource &source = CurrentUpdateSource();
     int32 y = DrawHeader("UPDATES", "Installed: " + installed);
     y       = DrawNote(line, y, lineColor);
     y       = DrawList(items, colors, y);
-    DrawNote(std::string("Download updates from the Releases of ") + kReleasesRepository + " on GitHub"
-                 + (OpenReleasesPageAvailable() ? ": Open the releases page shows them in the browser." : "."),
+    DrawNote(!source.howToUpdate.empty() ? source.howToUpdate
+                                         : "Download updates from the Releases of " + source.repository + " on GitHub"
+                                               + (canOpen ? ": Open the releases page shows them in the browser." : "."),
              y, kDimColor);
 
     const MenuInput input = ReadMenuInput();
@@ -649,7 +670,7 @@ void Page_Updates()
         CloseMenu();
         return;
     }
-    if (input.back || (input.confirm && menu.selection == 2)) {
+    if (input.back || (input.confirm && menu.selection == backItem)) {
         GoToPage(Page_Main);
         menu.selection = kUpdatesItem;
         return;
@@ -658,7 +679,7 @@ void Page_Updates()
         return;
     if (menu.selection == 0)
         StartUpdateCheck(false);
-    else if (menu.selection == 1)
+    else if (canOpen && menu.selection == 1)
         OpenReleasesPage();
 }
 

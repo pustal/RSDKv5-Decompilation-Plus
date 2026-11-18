@@ -61,8 +61,22 @@ The code is in `RSDKv5/RSDK/Plus/` (one translation unit, included by `RetroEngi
 
 **Icons.** Every platform's app icon (macOS, Windows, Android, the Switch, the Wii's Homebrew Channel, the Wii U's and the Vita's, and the window's icon on Linux) is the R of the RSDK logo with the green PLUS, drawn from `header.png` by `tools/make-icons.py` (Pillow and NumPy), which writes them all again if the header changes.
 
-A port that wraps the engine in its own launcher can tell the Plus module what only it knows, through the platform API at the end of `RSDKv5/RSDK/Plus/Plus.hpp`: more folders to find the retro packs and the fan games' files in (a USB drive's, say), a line for the menu's main page and the Games page's and Settings page's hints, starting the Sonic Origins audio conversion and following it, its own main-page entries, a per-frame callback on the engine's thread, and the menu's settings to read and apply. [SonicWebMania](https://github.com/pustal/SonicWebMania), the LG webOS TV app, uses it with no other change to the engine.
+A port that wraps the engine in its own launcher can tell the Plus module what only it knows, through the platform API at the end of `RSDKv5/RSDK/Plus/Plus.hpp`: more folders to find the retro packs and the fan games' files in (a USB drive's, say), a line for the menu's main page and the Games page's and Settings page's hints, starting the Sonic Origins audio conversion and following it, its own main-page entries, a per-frame callback on the engine's thread, the menu's settings to read and apply, and whose releases the update check looks for (its own repository and version, whether a browser can open, how its users update). [SonicWebMania](https://github.com/pustal/SonicWebMania), the LG webOS TV app, uses it with no other change to the engine.
 
+
+# Credits
+
+The Plus features stand on other people's work. Thank you to:
+
+* **[RSDKv5 Decompilation](https://github.com/RSDKModding/RSDKv5-Decompilation)** and **[Sonic Mania Decompilation](https://github.com/RSDKModding/Sonic-Mania-Decompilation)**, by the RSDKModding team (Rubberduckycooly, chuliRMG and contributors), which this fork is built on, with their RSDKv3 and RSDKv4 cores for the retro games.
+* **[RSDKv2 Decompilation](https://github.com/RSDKModding/RSDKv2-Decompilation)**, by Rubberduckycooly and RMGRich: Sonic Nexus's engine, hosted by this one for the Fan games (`RSDKv5/RSDK/Plus/Nexus/RSDKv2`, under [its licence](https://github.com/RSDKModding/RSDKv2-Decompilation/blob/master/LICENSE.md), kept with the code).
+* **Wii:** [Mefiresu's Wii port](https://github.com/Mefiresu/RSDKv5-Decompilation/tree/dev/wii-port) (GX graphics, AESND sound, Wii Remote, Nunchuk, Classic Controller and GameCube controller input), with camthehaxman's multiplayer and cherryduck's 240p work.
+* **Wii U:** [Clownacy's](https://github.com/Clownacy/Sonic-Mania-Decompilation-Wii-U) and [Radfordhound's](https://github.com/Radfordhound/RSDKv5-Decompilation) Wii U ports.
+* **PlayStation Vita:** [SonicMastr's Vita port](https://github.com/SonicMastr/Sonic-Mania-Vita).
+* **[SonicWebMania](https://github.com/pustal/SonicWebMania)**: the transfer page and its server, shared with the Android app.
+* Libraries: [cpp-httplib](https://github.com/yhirose/cpp-httplib) (the transfer page), [clHCA from vgmstream](https://github.com/vgmstream/vgmstream) (Sonic Origins' audio), [libvpx](https://chromium.googlesource.com/webm/libvpx) and [Theora](https://github.com/xiph/theora) (Sonic Origins' videos), [stb_vorbis](https://github.com/nothings/stb) (music, also Sonic Nexus's).
+
+Original RSDK authors: Christian "Taxman" Whitehead (RSDKv2 to v4, and Sonic Nexus) and Evening Star (RSDKv5).
 
 # How to Build
 

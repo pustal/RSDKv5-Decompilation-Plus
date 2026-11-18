@@ -19,6 +19,10 @@
 // Windows, NSURLSession on macOS (cocoaHelpers.mm), and on Linux libcurl,
 // loaded when needed (every desktop distribution has it), so building needs
 // nothing more.
+//
+// A port that wraps the engine (SonicWebMania on webOS TVs) checks for its
+// own releases instead, with SetUpdateSource(): its repository and version,
+// whether the system can open a web page, and how its users update.
 
 #ifndef PLUS_VERSION
 #define PLUS_VERSION "" // A build without it (the Visual Studio projects) shows the latest version without comparing.
@@ -51,18 +55,36 @@ namespace RSDK
 namespace Plus
 {
 
-/** Where the releases are published (owner/repository on GitHub). */
+/** Where this build's releases are published (owner/repository on GitHub), unless a port sets its own. */
 const char *const kReleasesRepository = "pustal/Sonic-Mania-Decompilation-Plus";
+
+/**
+ * Whose releases the check looks for: this build's (the defaults), or a
+ * port's (SetUpdateSource()). Set before the engine starts, then only read.
+ */
+UpdateSource &CurrentUpdateSource()
+{
+    static UpdateSource source = [] {
+        UpdateSource defaults;
+        defaults.repository  = kReleasesRepository;
+        defaults.version     = PLUS_VERSION;
+        defaults.canOpenPage = true;
+        return defaults;
+    }();
+    return source;
+}
+
 /** GitHub's API answer about the latest release. */
-const char *const kLatestReleaseUrl = "https://api.github.com/repos/pustal/Sonic-Mania-Decompilation-Plus/releases/latest";
+std::string LatestReleaseUrl() { return "https://api.github.com/repos/" + CurrentUpdateSource().repository + "/releases/latest"; }
+
 /** The page the browser opens to download a release. */
-const char *const kReleasesPageUrl = "https://github.com/pustal/Sonic-Mania-Decompilation-Plus/releases/latest";
+std::string ReleasesPageUrl() { return "https://github.com/" + CurrentUpdateSource().repository + "/releases/latest"; }
 
 /** Whether this build checks for updates itself (Android does it in Java, with its own menu entry). */
 constexpr bool UpdateCheckAvailable() { return PLUS_UPDATE_CHECK != 0; }
 
-/** The version this build reports ("" when unknown). */
-const char *InstalledVersion() { return PLUS_VERSION; }
+/** The version this build (or the port) reports ("" when unknown). */
+const char *InstalledVersion() { return CurrentUpdateSource().version.c_str(); }
 
 /** Where a check is. */
 enum class UpdateState {
@@ -310,21 +332,24 @@ bool HttpGet(const char *url, std::string *body, std::string *error)
 #endif
 }
 
-/** Whether this build can open the releases page in a browser. */
-constexpr bool OpenReleasesPageAvailable() { return UpdateCheckAvailable(); }
+/** Whether this build can open the releases page in a browser (not on a TV: SetUpdateSource()). */
+bool OpenReleasesPageAvailable() { return UpdateCheckAvailable() && CurrentUpdateSource().canOpenPage; }
 
 /** Opens the releases page in the system's browser. */
 void OpenReleasesPage()
 {
+    if (!OpenReleasesPageAvailable())
+        return;
+    const std::string page = ReleasesPageUrl();
 #if RETRO_PLATFORM == RETRO_WIN
-    ShellExecuteA(nullptr, "open", kReleasesPageUrl, nullptr, nullptr, SW_SHOWNORMAL);
+    ShellExecuteA(nullptr, "open", page.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 #elif RETRO_PLATFORM == RETRO_OSX
-    openURL(kReleasesPageUrl);
+    openURL(page.c_str());
 #elif RETRO_PLATFORM == RETRO_LINUX
     // xdg-open, without waiting for it: the browser keeps running after it returns.
     // posix_spawnp() takes writable strings.
     std::string program = "xdg-open";
-    std::string url     = kReleasesPageUrl;
+    std::string url     = page;
     char *const arguments[] = { &program[0], &url[0], nullptr };
     pid_t child             = 0;
     if (posix_spawnp(&child, "xdg-open", nullptr, nullptr, arguments, environ) == 0)
@@ -349,9 +374,10 @@ void StartUpdateCheck(bool automatic)
         check.automatic = automatic;
         check.announced = false;
     }
-    std::thread([] {
+    const std::string url = LatestReleaseUrl(); // Read here, on the engine's thread.
+    std::thread([url] {
         std::string body, error;
-        const bool fetched       = HttpGet(kLatestReleaseUrl, &body, &error);
+        const bool fetched       = HttpGet(url.c_str(), &body, &error);
         const std::string latest = fetched ? ParseReleaseTag(body) : std::string();
 
         UpdateCheck &result = UpdateCheckState();
@@ -427,7 +453,7 @@ struct UpdateStatus {
 UpdateStatus CurrentUpdateStatus() { return { UpdateState::Idle, std::string(), std::string() }; }
 void StartUpdateCheck(bool) {}
 void UpdateFrame(bool) {}
-constexpr bool OpenReleasesPageAvailable() { return false; }
+bool OpenReleasesPageAvailable() { return false; }
 void OpenReleasesPage() {}
 
 #endif // PLUS_UPDATE_CHECK

@@ -259,6 +259,22 @@ void SetPlatformTexts(const PlatformTexts &texts);
  */
 void AddMenuAction(const std::string &label, void (*action)());
 
+/**
+ * Whose releases the update check (Windows, macOS, Linux builds; the Plus
+ * menu's Updates page) looks for. By default this build's own; a port with
+ * its own releases sets its repository and version, so the check compares
+ * the right things.
+ */
+struct UpdateSource {
+    std::string repository;  ///< "owner/repository" on GitHub, whose latest release is checked.
+    std::string version;     ///< The installed version, as the release tags write it ("3.4.0").
+    bool canOpenPage = true; ///< Whether the system can open the releases page in a browser (a TV app cannot).
+    std::string howToUpdate; ///< Shown on the Updates page, instead of the default line, to say how to update ("" for the default).
+};
+
+/** Sets whose releases the update check looks for (see UpdateSource). Call before RunRetroEngine(). */
+void SetUpdateSource(const UpdateSource &source);
+
 /** Calls @p callback once per frame on the engine's thread (null for none). */
 void SetFrameCallback(void (*callback)());
 
