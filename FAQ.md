@@ -48,6 +48,12 @@ A: The Origins one. The earlier release's pack then only lends its music and sou
 ### Q: Where are the retro games' saves?
 A: Each retro game keeps its saves and achievements in `retro/<game>/` (`retro/sonic1/`, ...). The Plus settings, the coin count and the touch controls' state are in `Plus.ini`.
 
+### Q: How do I play Sonic Nexus?
+A: Put its `Data.bin` (from the 2008 release), renamed `sonic-nexus.bin`, in a `fan` folder next to `Data.rsdk` (`fan/sonic-nexus.bin`). The Plus menu's Games page then has a **Fan games** section with Sonic Nexus. It runs on RSDKv2 (from the RSDKv2 decompilation) inside the engine, at its own 320-pixel width with black bars at the sides, and it does not need Sonic Mania's pack.
+
+### Q: What about Retro Sonic?
+A: Not supported: Retro Sonic (2007) runs on RSDKv1, which has no engine decompilation to build on (only its scripts were decompiled).
+
 # Using Sonic Origins RSDK Files
 ### Q: Why is there no audio?
 A: Sonic Origins doesn't have any music or sound effects in the games' data files: it plays all of it itself, through CRIWARE. This fork fills the gap three ways, and uses the first one it finds for each sound:

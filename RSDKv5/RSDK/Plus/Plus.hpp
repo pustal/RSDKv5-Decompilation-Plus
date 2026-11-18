@@ -30,6 +30,10 @@
  *   each game and its Sonic Team logo, which Plus plays itself.
  * - Sonic Mania's pack lends the retro games the music and sound effects
  *   their packs lack (PlusAudio.cpp).
+ * - Fan games (PlusFan.cpp): Sonic Nexus, from its own data file in a "fan"
+ *   folder next to Data.rsdk, on the RSDKv2 decompilation hosted as engine
+ *   version 2 (Nexus/NexusCore.hpp). The Games page lists them in a "Fan
+ *   games" section when one is there.
  * - The Plus menu (PlusMenu.cpp), opened with Select (Tab on a keyboard),
  *   drawn with the engine's developer font so it works on every renderer.
  * - The official Plus DLCs (Sonic Mania Plus, Sonic Origins Plus) stay off
@@ -127,6 +131,37 @@ void OpenMenu();
 void Notify(const std::string &text);
 
 // =====================
+// Fan games (PlusFan.cpp)
+// =====================
+//
+// Sonic Nexus, from fan/sonic-nexus.bin, runs on RSDKv2 hosted as engine
+// version 2 (Nexus/NexusCore.hpp). Like the legacy cores, it uses
+// Legacy::gameMode (ENGINE_MAINGAME, or ENGINE_DEVMENU while the Plus menu
+// is open), so the engine's menu handling covers it.
+
+/**
+ * The engine version the game being started runs on when Plus decides it
+ * rather than the packs: 2 for a fan game, else 0 (DetectEngineVersion()
+ * reads the packs). The packs loaded for a fan game are only Sonic Mania's,
+ * for its shaders.
+ */
+int32 HostedEngineVersion();
+
+/** InitEngine() for engine version 2: starts the fan game chosen. @return False if it could not (the Plus menu opens and says so). */
+bool32 StartFanGame();
+
+/** The main loop's frame for engine version 2: the fan game, or the Plus menu over it. */
+void ProcessFanGame();
+
+/**
+ * Called at the end of AudioDeviceBase::ProcessAudioMixing(): adds the fan
+ * game's music and sounds to @p stream (@p length samples, interleaved
+ * stereo, as the engine mixes them). Does nothing unless one is playing.
+ * Called from the audio thread.
+ */
+void MixFanGameAudio(void *stream, int32 length);
+
+// =====================
 // Legacy core hooks
 // =====================
 
@@ -199,8 +234,9 @@ bool32 ResolveLegacyMusic(const char *name, char *out, int32 outSize, int32 *loo
 /**
  * Also looks for the retro packs in @p folder (an absolute path, a USB
  * drive's folder for instance), after the user folder's "retro" folder:
- * each pack is taken from the first folder that has it. Saves stay in the
- * user folder. Call before RunRetroEngine(); the packs are found at startup.
+ * each pack is taken from the first folder that has it. The fan games' files
+ * (sonic-nexus.bin) are looked for there too, after the user folder's "fan"
+ * folder. Saves stay in the user folder. Call before RunRetroEngine(); the packs are found at startup.
  */
 void AddPackFolder(const std::string &folder);
 

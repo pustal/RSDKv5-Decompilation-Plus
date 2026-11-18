@@ -284,6 +284,7 @@ void RSDK::OpenDevMenu()
 
         case 4:
         case 3:
+        case 2: // (Plus) Sonic Nexus's core uses the legacy cores' game mode (RSDK/Plus/PlusFan.cpp).
             devMenu.sceneState     = RSDK::Legacy::gameMode;
             RSDK::Legacy::gameMode = RSDK::Legacy::ENGINE_DEVMENU;
             break;
@@ -310,7 +311,8 @@ void RSDK::CloseDevMenu()
             sceneInfo.state           = devMenu.sceneState;
             break;
         case 4:
-        case 3: RSDK::Legacy::gameMode = devMenu.sceneState; break;
+        case 3:
+        case 2: RSDK::Legacy::gameMode = devMenu.sceneState; break; // (Plus) Sonic Nexus, see OpenDevMenu().
     }
 #else
     videoSettings.screenCount = sceneInfo.state == ENGINESTATE_VIDEOPLAYBACK ? 0 : videoSettings.screenCount;

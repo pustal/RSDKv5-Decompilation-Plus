@@ -205,6 +205,11 @@ void AudioDeviceBase::ProcessAudioMixing(void *stream, int32 length)
             case CHANNEL_LOADING_STREAM: break;
         }
     }
+
+#if RETRO_USE_PLUS
+    // (Plus) Sonic Nexus's core mixes its own music and sounds (RSDK/Plus/PlusFan.cpp).
+    RSDK::Plus::MixFanGameAudio(stream, length);
+#endif
 }
 
 void AudioDeviceBase::InitAudioChannels()

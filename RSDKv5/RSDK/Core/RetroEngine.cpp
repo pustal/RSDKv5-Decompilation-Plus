@@ -1,3 +1,7 @@
+// (Plus) Sonic Nexus's engine (RSDKv2), compiled first, before any RSDKv5
+// header, and sealed off from them (see RSDK/Plus/Nexus/NexusCore.cpp).
+#include "RSDK/Plus/Nexus/NexusCore.cpp"
+
 #include "RSDK/Core/RetroEngine.hpp"
 
 using namespace RSDK;
@@ -283,6 +287,9 @@ int32 RSDK::RunRetroEngine(int32 argc, char *argv[])
                         case 5: ProcessEngine(); break;
                         case 4: Legacy::v4::ProcessEngine(); break;
                         case 3: Legacy::v3::ProcessEngine(); break;
+#if RETRO_USE_PLUS
+                        case 2: RSDK::Plus::ProcessFanGame(); break; // (Plus) Sonic Nexus (RSDKv2).
+#endif
                     }
 #else
                     ProcessEngine();
@@ -759,7 +766,21 @@ void RSDK::InitEngine()
             Legacy::ResetCurrentStageFolder();
             Legacy::v3::ClearScriptData();
             break;
+
+#if RETRO_USE_PLUS
+        case 2: // (Plus) Sonic Nexus: RSDKv2, hosted (RSDK/Plus/PlusFan.cpp).
+            RSDK::GenerateBlendLookupTable(); // For the Plus menu, which draws with RSDKv5.
+            RSDK::Plus::StartFanGame();
+            break;
+#endif
     }
+#endif
+#if RETRO_USE_PLUS
+    // (Plus) Dim after 5 minutes without input, as Sonic Mania's first scene
+    // sets it: a game started without Sonic Mania running first (a legacy or
+    // fan game) would otherwise start dimmed (the limit would still be 0).
+    if (!videoSettings.dimLimit)
+        videoSettings.dimLimit = (5 * 60) * videoSettings.refreshRate;
 #endif
     engine.initialized = true;
     engine.hardPause   = false;

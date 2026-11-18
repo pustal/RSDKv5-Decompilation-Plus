@@ -16,6 +16,13 @@ bool32 RSDK::useDataPack = false;
 void RSDK::DetectEngineVersion()
 {
     bool32 readDataPack = useDataPack;
+#if RETRO_USE_PLUS
+    // (Plus) A fan game runs on a core the packs say nothing about (Sonic Nexus: RSDKv2).
+    if (Plus::HostedEngineVersion()) {
+        engine.version = Plus::HostedEngineVersion();
+        return;
+    }
+#endif
 #if RETRO_USE_MOD_LOADER
     // mods can manually set their target engine versions if needed
     if (modSettings.versionOverride) {

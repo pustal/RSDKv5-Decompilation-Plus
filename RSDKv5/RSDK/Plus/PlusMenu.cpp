@@ -8,7 +8,8 @@
 // picture, drawn with the engine's developer font (DrawDevString) so it shows
 // on every renderer. Pages:
 //   - Main: Resume, Games, Achievements, Settings, Exit;
-//   - Games: Sonic Mania and the retro games found, to switch to;
+//   - Games: Sonic Mania and the retro games found, to switch to, then the
+//     fan games found (PlusFan.cpp) under a "Fan games" heading;
 //   - Achievements: the running game's list;
 //   - Settings: the official Plus DLCs (off unless the player owns and turns
 //     them on), converting Sonic Origins' audio and videos (PlusOrigins.cpp,
@@ -311,6 +312,7 @@ struct GameRow {
     std::string title;
     std::string description;
     bool playable;
+    bool heading = false; ///< A section's title ("Fan games"), not a game: never selected.
 };
 
 std::vector<GameRow> GameRows()
@@ -318,7 +320,20 @@ std::vector<GameRow> GameRows()
     std::vector<GameRow> rows;
     rows.push_back({ kManiaId, "Sonic Mania", ManiaAvailable() ? "Sonic Mania (Data.rsdk)" : "Not installed: Data.rsdk is missing", ManiaAvailable() });
     for (const RetroGame &game : RetroGames()) rows.push_back({ game.info.id, game.info.title, game.Description(), game.Playable() });
+    // The fan games' section shows only when one was found.
+    if (!fanGames.empty()) {
+        rows.push_back({ "", "- Fan games -", "", false, true });
+        for (const FanGame &game : fanGames) rows.push_back({ game.info.id, game.info.title, "Fan game (" + game.path + ")", true });
+    }
     return rows;
+}
+
+/** Moves the selection off a heading row, onward in the direction the input moved it (down when none). */
+void SkipHeadingRows(const std::vector<GameRow> &rows, const MenuInput &input)
+{
+    const int32 count = (int32)rows.size();
+    const int32 step  = input.up ? count - 1 : 1;
+    for (int32 tries = 0; tries < count && rows[menu.selection].heading; ++tries) menu.selection = (menu.selection + step) % count;
 }
 
 void Page_Games()
@@ -328,8 +343,8 @@ void Page_Games()
     std::vector<std::string> items;
     std::vector<uint32> colors;
     for (const GameRow &row : rows) {
-        items.push_back(row.title + (row.id == CurrentGameId() ? " (playing)" : ""));
-        colors.push_back(row.playable ? kItemColor : kDimColor);
+        items.push_back(row.title + (!row.heading && row.id == CurrentGameId() ? " (playing)" : ""));
+        colors.push_back(row.heading ? kTitleColor : row.playable ? kItemColor : kDimColor);
     }
 
     int32 y = DrawHeader("GAMES", "Switch to another game");
@@ -344,6 +359,7 @@ void Page_Games()
 
     const MenuInput input = ReadMenuInput();
     MoveSelection(input, (int32)rows.size());
+    SkipHeadingRows(rows, input);
     if (input.close) {
         CloseMenu();
         return;
@@ -353,7 +369,7 @@ void Page_Games()
         menu.selection = 1;
         return;
     }
-    if (!input.confirm)
+    if (!input.confirm || selected.heading)
         return;
     if (!selected.playable) {
         menu.message = selected.title + " cannot be played: " + selected.description;

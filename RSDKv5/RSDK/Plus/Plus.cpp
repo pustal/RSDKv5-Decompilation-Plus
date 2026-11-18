@@ -10,7 +10,7 @@
 // The official Plus DLCs' opt-in is Settings.ini Game:plusDLC (see
 // PlusDLCEnabled() and SetPlusDLCEnabled()), so it works without the Plus
 // module too. Plus's own settings are kept in Plus.ini next to Settings.ini:
-//   lastGame=sonic1        the game to start with ("mania" or a retro game)
+//   lastGame=sonic1        the game to start with ("mania", a retro game or a fan game)
 //   maniaAudio=1           Sonic Mania's audio fills the retro games' gaps
 //   maniaSimilarMusic=0    ...including similar-feel music for other zones
 //   maniaRemixes=0         the zones Mania remixed play the remix, even
@@ -21,11 +21,13 @@
 //   updateCheck=1          look for a newer release at start (desktop, PlusUpdate.cpp)
 //   ; end                  marks the end (see SaveConfig())
 
+#include <atomic>
 #include <cstdio>
 #include <filesystem>
 #include <type_traits>
 
 #include "PlusPacks.cpp"
+#include "PlusFan.cpp"
 #include "PlusOrigins.cpp"
 #include "PlusVideo.cpp"
 
@@ -330,13 +332,15 @@ std::string RetroSaveFolder(const std::string &id) { return UserPath(std::string
  */
 void EnsureSaveFolder()
 {
-    if (!IsRetroGame(plus.current))
+    if (!IsRetroGame(plus.current) && !IsFanGame(plus.current))
         return;
-    const std::string folder = RetroSaveFolder(plus.current);
+    const std::string folder = IsFanGame(plus.current) ? FanSaveFolder(plus.current) : RetroSaveFolder(plus.current);
     if (folder == customUserFileDir)
         return;
     // Whatever was there (a mod's folder, or none) comes back with Sonic Mania.
-    if (strncmp(customUserFileDir, UserPath(kRetroFolder).c_str(), UserPath(kRetroFolder).size()) != 0)
+    const std::string retroRoot = UserPath(kRetroFolder);
+    const std::string fanRoot   = UserPath(kFanFolder);
+    if (strncmp(customUserFileDir, retroRoot.c_str(), retroRoot.size()) != 0 && strncmp(customUserFileDir, fanRoot.c_str(), fanRoot.size()) != 0)
         strcpy(plus.otherUserFileDir, customUserFileDir);
 #if RETRO_PLATFORM != RETRO_ANDROID
     // On Android the Java side creates the folders when a save is first written.
@@ -352,6 +356,14 @@ bool LoadGamePacks(const std::string &id)
     UnloadDataPacks();
     plus.audioPackRetired = false; // The packs load anew (see Update()).
     plus.videoPackRetired = false;
+    if (IsFanGame(id)) {
+        // The game reads its own data file (PlusFan.cpp); Sonic Mania's pack
+        // only lends the renderers its shaders, when it is there.
+        engine.gameReleaseID = 0;
+        if (plus.maniaAvailable && !LoadAudioDataPack(plus.maniaDataFile.c_str(), false))
+            PrintLog(PRINT_NORMAL, "[Plus] Could not load Sonic Mania's pack for shaders");
+        return true;
+    }
     if (!IsRetroGame(id)) {
         engine.gameReleaseID = plus.maniaReleaseID;
         return LoadDataPack(plus.maniaDataFile.c_str(), 0, plus.useBuffer);
@@ -383,7 +395,9 @@ bool LoadGamePacks(const std::string &id)
 void LeaveGame()
 {
     SKU::SaveUserData(); // Achievements.bin of the game being left, in its save folder.
-    if (!IsRetroGame(plus.current)) {
+    if (IsFanGame(plus.current))
+        StopFanGame();
+    if (plus.current == kManiaId) {
         plus.maniaAchievements     = achievementList;
         plus.maniaAchievementsKept = true;
     }
@@ -399,6 +413,11 @@ void EnterGame(const std::string &id)
         EnsureSaveFolder(); // Its achievements are installed when its first stage loads.
         return;
     }
+    if (IsFanGame(id)) {
+        EnsureSaveFolder();
+        achievementList.clear(); // Sonic Nexus has none.
+        return;
+    }
     strcpy(customUserFileDir, plus.otherUserFileDir);
     if (!plus.maniaAchievementsKept)
         return;
@@ -411,18 +430,22 @@ void EnterGame(const std::string &id)
     }
 }
 
-/** The game to start with: the last one played if it can be, else Sonic Mania, else the first retro game. */
+/** The game to start with: the last one played if it can be, else Sonic Mania, else the first retro game, else the first fan game. */
 std::string StartupGame(bool32 maniaLoaded)
 {
     const RetroGame *last = FindRetroGame(plus.config.lastGame);
     if (last && last->Playable())
         return last->info.id;
+    if (IsFanGame(plus.config.lastGame))
+        return plus.config.lastGame;
     if (maniaLoaded)
         return kManiaId;
     for (const RetroGame &game : plus.games) {
         if (game.Playable())
             return game.info.id;
     }
+    if (!fanGames.empty())
+        return fanGames.front().info.id;
     return kManiaId;
 }
 
@@ -449,9 +472,10 @@ bool32 RSDK::Plus::OnStartupPacks(const char *maniaDataFile, bool32 maniaLoaded,
     plus.maniaAchievementsKept = true;
     LoadConfig();
     plus.games = ScanRetroGames();
+    fanGames   = ScanFanGames();
 
     const std::string game = StartupGame(maniaLoaded);
-    if (!IsRetroGame(game))
+    if (!IsRetroGame(game) && !IsFanGame(game))
         return false;
     if (!LoadGamePacks(game)) {
         PrintLog(PRINT_NORMAL, "[Plus] Could not load %s's packs", game.c_str());
@@ -487,6 +511,7 @@ void RSDK::Plus::ApplyPendingSwitch()
     forceHardReset = true;
 #endif
     engine.version = 0;
+    plus.current   = target; // Before DetectEngineVersion(): a fan game's version is Plus's (HostedEngineVersion()).
     DetectEngineVersion();
     if (!engine.version)
         engine.version = 5;
@@ -684,8 +709,11 @@ void RSDK::Plus::Notify(const std::string &text)
     plus.noticeFrames = kNoticeFrames;
 }
 
+int32 RSDK::Plus::HostedEngineVersion() { return IsFanGame(plus.current) ? 2 : 0; }
+
 void RSDK::Plus::Release()
 {
+    StopFanGame();
     StopOriginsConversion();
     StopVideoConversion();
     if (IsRetroGame(plus.current) && engine.version != 5 && GlobalExists("game.coinCount"))
