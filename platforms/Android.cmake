@@ -1,4 +1,5 @@
-add_library(RetroEngine SHARED ${RETRO_FILES} dependencies/android/androidHelpers.cpp dependencies/android/androidTransfer.cpp)
+add_library(RetroEngine SHARED ${RETRO_FILES} dependencies/android/androidHelpers.cpp dependencies/android/androidTransfer.cpp
+    dependencies/android/androidUpdate.cpp)
 
 # (Plus) The transfer page (dependencies/android/transfer): SonicWebMania's server, on
 # cpp-httplib, with its page built in. C++17 (std::filesystem), so a library of its own.

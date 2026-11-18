@@ -23,4 +23,17 @@ const char* getAppFolderPath(void);
  */
 void disableNativeFullScreen(void *nsWindow);
 
+/**
+ * (Plus) Fetches @p url (HTTPS) with NSURLSession, waiting for the answer:
+ * call it on a thread of its own (the update check, PlusUpdate.cpp). The body
+ * comes back in @p body (malloc'd, NUL-terminated, for the caller to free;
+ * null when there is none), and a failure's reason in @p error.
+ *
+ * @return The HTTP status (200 on success), or 0 when the request failed.
+ */
+int httpGetText(const char *url, const char *userAgent, char **body, char *error, unsigned long errorSize);
+
+/** (Plus) Opens @p url in the default browser. */
+void openURL(const char *url);
+
 #endif

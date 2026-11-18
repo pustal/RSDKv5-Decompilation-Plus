@@ -77,6 +77,20 @@ public class Launcher extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // (Plus) Opened again (from the app's icon, or Recents) while the game runs in this
+        // process: back to the game, which a second start would crash.
+        if (RSDK.alive) {
+            startActivity(new Intent(this, RSDK.class)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
+            finish();
+            return;
+        }
+        // The game ended but Android kept the process: the engine cannot start in it again.
+        if (RSDK.engineStarted) {
+            RSDK.restartProcess(this);
+            return;
+        }
+
         basePathStore = new File(getFilesDir(), "basePathStore");
 
         folderLauncher = registerForActivityResult(

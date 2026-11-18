@@ -35,6 +35,7 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine,
 
 #elif RETRO_PLATFORM == RETRO_ANDROID
 #include <androidTransfer.hpp> // (Plus) The transfer page (dependencies/android/androidTransfer.cpp).
+#include <androidUpdate.hpp>   // (Plus) "Check for updates" (dependencies/android/androidUpdate.cpp).
 
 extern "C" {
 void android_main(struct android_app *app);
@@ -80,6 +81,8 @@ void android_main(struct android_app *ap)
 #if !RETRO_USE_ORIGINAL_CODE
     // (Plus) The transfer page the launcher started: its address in the Plus menu, and so on.
     ConfigureTransferForGame();
+    // (Plus) "Check for updates" in the Plus menu.
+    ConfigureUpdates();
 #endif
 
     RSDK_main(0, NULL, (void *)LinkGameLogic);

@@ -227,6 +227,7 @@ void Page_SaveModes();
 void Page_SaveSlots();
 void Page_SlotActions();
 void Page_Characters();
+void Page_Updates();
 
 /** Shows page @p page from its first item. */
 void GoToPage(void (*page)())
@@ -242,12 +243,17 @@ void GoToPage(void (*page)())
 // Main
 // ---------------------
 
+/** Where the main page's Updates entry is: after Settings, when this build checks for updates (PlusUpdate.cpp). */
+const int32 kUpdatesItem = 4;
+
 void Page_Main()
 {
     BeginPage();
-    // Resume, Games, Achievements, Settings, a port's own entries (AddMenuAction()), Exit.
-    const int32 kFixedItems        = 4;
+    // Resume, Games, Achievements, Settings, Updates (desktop), a port's own entries (AddMenuAction()), Exit.
+    const int32 kFixedItems        = UpdateCheckAvailable() ? 5 : 4;
     std::vector<std::string> items = { "Resume", "Games", "Achievements", "Settings" };
+    if (UpdateCheckAvailable())
+        items.push_back("Updates");
     for (const auto &action : plus.menuActions) items.push_back(action.first);
     items.push_back("Exit");
     const std::vector<uint32> colors(items.size(), kItemColor);
@@ -275,6 +281,13 @@ void Page_Main()
             break;
         case 3: GoToPage(Page_Settings); break;
         default: {
+            if (UpdateCheckAvailable() && menu.selection == kUpdatesItem) {
+                GoToPage(Page_Updates);
+                // A fresh look each time the page opens (the start-up check may be old, or have failed).
+                if (CurrentUpdateStatus().state != UpdateState::Checking)
+                    StartUpdateCheck(false);
+                break;
+            }
             const int32 action = menu.selection - kFixedItems;
             if (action < (int32)plus.menuActions.size()) {
                 CloseMenu();
@@ -409,6 +422,7 @@ enum SettingsItem {
     SETTING_TOUCHCONTROLS,
     SETTING_TOUCHOPACITY,
     SETTING_DISPLAY,
+    SETTING_UPDATECHECK,
     SETTING_BACK,
 };
 
@@ -422,6 +436,8 @@ std::vector<SettingsItem> SettingsItems()
     }
     if (WindowModeAvailable())
         items.push_back(SETTING_DISPLAY);
+    if (UpdateCheckAvailable())
+        items.push_back(SETTING_UPDATECHECK);
     items.push_back(SETTING_BACK);
     return items;
 }
@@ -463,6 +479,7 @@ void Page_Settings()
             case SETTING_TOUCHCONTROLS: items.push_back(std::string("Touch controls: ") + OnOff(TouchControlsShown())); break;
             case SETTING_TOUCHOPACITY: items.push_back("Touch controls opacity: " + std::to_string(TouchOpacity()) + "%"); break;
             case SETTING_DISPLAY: items.push_back(std::string("Display: ") + (FullScreen() ? "Full screen" : "Windowed")); break;
+            case SETTING_UPDATECHECK: items.push_back(std::string("Check for updates at start: ") + OnOff(UpdateCheckEnabled())); break;
             case SETTING_BACK: items.push_back("Back"); break;
         }
         // The music options need Sonic Mania's audio.
@@ -514,6 +531,10 @@ void Page_Settings()
         case SETTING_TOUCHCONTROLS: note = "A pad and buttons over the game. The button at the top right also shows and hides them."; break;
         case SETTING_TOUCHOPACITY: note = "Left and right change it; at 0% the controls still work, unseen."; break;
         case SETTING_DISPLAY: note = "Switches between a window and the whole screen, and remembers it. Alt+Enter switches too."; break;
+        case SETTING_UPDATECHECK:
+            note = "Asks GitHub for the latest release when the game starts, and says so when there is a newer one. "
+                   "The main page's Updates checks any time.";
+            break;
         case SETTING_BACK: break;
     }
     y = DrawNote(note, y, kItemColor);
@@ -569,11 +590,60 @@ void Page_Settings()
         case SETTING_TOUCHCONTROLS: SetTouchControlsShown(!TouchControlsShown()); break;
         case SETTING_TOUCHOPACITY: StepTouchOpacity(input.left ? -1 : 1); break;
         case SETTING_DISPLAY: RequestWindowModeToggle(); break;
+        case SETTING_UPDATECHECK: SetUpdateCheckEnabled(!UpdateCheckEnabled()); break;
         case SETTING_PLUSDLC:
         case SETTING_ORIGINSAUDIO:
         case SETTING_ORIGINSVIDEO:
         case SETTING_BACK: break;
     }
+}
+
+// ---------------------
+// Updates (desktop, PlusUpdate.cpp)
+// ---------------------
+
+void Page_Updates()
+{
+    BeginPage();
+    const UpdateStatus status = CurrentUpdateStatus();
+    const std::string installed = *InstalledVersion() ? InstalledVersion() : "unknown";
+
+    std::string line;
+    uint32 lineColor = kItemColor;
+    switch (status.state) {
+        case UpdateState::Idle:
+        case UpdateState::Checking: line = "Asking GitHub for the latest release..."; lineColor = kDimColor; break;
+        case UpdateState::Newer: line = "Version " + status.latest + " is available."; lineColor = kGoodColor; break;
+        case UpdateState::Current: line = "This is the latest version."; break;
+        case UpdateState::Failed: line = "Could not check: " + status.error + "."; lineColor = kWarnColor; break;
+    }
+
+    const std::vector<std::string> items = { "Check again", "Open the releases page", "Back" };
+    const std::vector<uint32> colors(items.size(), kItemColor);
+    int32 y = DrawHeader("UPDATES", "Installed: " + installed);
+    y       = DrawNote(line, y, lineColor);
+    y       = DrawList(items, colors, y);
+    DrawNote(std::string("Download updates from the Releases of ") + kReleasesRepository + " on GitHub"
+                 + (OpenReleasesPageAvailable() ? ": Open the releases page shows them in the browser." : "."),
+             y, kDimColor);
+
+    const MenuInput input = ReadMenuInput();
+    MoveSelection(input, (int32)items.size());
+    if (input.close) {
+        CloseMenu();
+        return;
+    }
+    if (input.back || (input.confirm && menu.selection == 2)) {
+        GoToPage(Page_Main);
+        menu.selection = kUpdatesItem;
+        return;
+    }
+    if (!input.confirm)
+        return;
+    if (menu.selection == 0)
+        StartUpdateCheck(false);
+    else if (menu.selection == 1)
+        OpenReleasesPage();
 }
 
 // ---------------------

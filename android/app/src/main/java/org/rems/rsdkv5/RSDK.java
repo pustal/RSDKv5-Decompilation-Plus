@@ -17,6 +17,7 @@ import com.google.androidgamesdk.GameActivity;
 
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
@@ -47,6 +48,15 @@ public class RSDK extends GameActivity {
         System.loadLibrary("c++_shared");
         System.loadLibrary("RetroEngine");
     }
+
+    /** (Plus) A game activity exists in this process (from onCreate() to onDestroy()). */
+    static volatile boolean alive = false;
+    /**
+     * (Plus) The engine has run in this process. Its native state (globals,
+     * threads) cannot start a second time, so a new game activity needs a new
+     * process (see {@link #restartProcess}).
+     */
+    static volatile boolean engineStarted = false;
 
     private static Uri basePath = null;
     private static OutputStream log = null;
@@ -82,6 +92,15 @@ public class RSDK extends GameActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // (Plus) The engine already ran in this process (Android kept it after the game ended):
+        // start afresh rather than run it twice, which crashed.
+        if (engineStarted && !alive) {
+            restartProcess(this);
+            return;
+        }
+        alive         = true;
+        engineStarted = true;
+
         if (basePath == null) {
             if (getIntent().getData() != null) {
                 basePath = getIntent().getData();
@@ -143,6 +162,7 @@ public class RSDK extends GameActivity {
 
     @Override
     protected void onDestroy() {
+        alive = false;
         setResult(RESULT_OK);
         try {
             log.close();
@@ -384,9 +404,22 @@ public class RSDK extends GameActivity {
      * this one.
      */
     public void restartApp() {
-        Intent intent = new Intent(getApplicationContext(), Launcher.class);
+        restartProcess(this);
+    }
+
+    /** (Plus) The Plus menu's "Check for updates" (androidUpdate.cpp): looks for a newer release on GitHub (Updater). */
+    public void checkForUpdates() {
+        Updater.check(this);
+    }
+
+    /**
+     * (Plus) Starts the launcher in a new process: this one ends, and Android
+     * starts another for the launcher's new task.
+     */
+    static void restartProcess(Context context) {
+        Intent intent = new Intent(context.getApplicationContext(), Launcher.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
+        context.startActivity(intent);
         Runtime.getRuntime().exit(0);
     }
 }

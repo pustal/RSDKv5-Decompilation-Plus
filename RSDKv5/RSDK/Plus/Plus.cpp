@@ -18,6 +18,7 @@
 //   coins=0                Sonic Origins' coins, shared by the retro games
 //   touchControls=0        the touch controls are shown (Android)
 //   touchOpacity=100       their opacity, in percent (0 hides them)
+//   updateCheck=1          look for a newer release at start (desktop, PlusUpdate.cpp)
 //   ; end                  marks the end (see SaveConfig())
 
 #include <cstdio>
@@ -42,6 +43,7 @@ struct Config {
     int32 coins          = 0;
     bool touchControls   = false;
     int32 touchOpacity   = 100; ///< Percent, a multiple of kTouchOpacityStep.
+    bool updateCheck     = true; ///< Look for a newer release at start (PlusUpdate.cpp).
 };
 
 /** The opacity choices of the touch controls, in percent. */
@@ -116,6 +118,7 @@ void RequestWindowModeToggle()
         windowModeTogglePending = true;
 }
 bool TouchControlsShown() { return plus.config.touchControls; }
+bool UpdateCheckEnabled() { return plus.config.updateCheck; }
 int32 TouchOpacity() { return plus.config.touchOpacity; }
 int32 Coins() { return plus.config.coins; }
 
@@ -178,6 +181,8 @@ void LoadConfig()
             plus.config.coins = atoi(value.c_str());
         else if (key == "touchControls")
             plus.config.touchControls = ParseBool(value);
+        else if (key == "updateCheck")
+            plus.config.updateCheck = ParseBool(value);
         else if (key == "touchOpacity") {
             // Clamped and snapped to the menu's steps.
             const int32 opacity       = atoi(value.c_str());
@@ -202,6 +207,7 @@ void SaveConfig()
     text += "coins=" + std::to_string(plus.config.coins) + "\n";
     text += std::string("touchControls=") + (plus.config.touchControls ? "1" : "0") + "\n";
     text += "touchOpacity=" + std::to_string(plus.config.touchOpacity) + "\n";
+    text += std::string("updateCheck=") + (plus.config.updateCheck ? "1" : "0") + "\n";
     text += std::string(kConfigEndLine) + "\n";
 
     PackFile out(UserPath(kConfigName), "wb");
@@ -230,6 +236,12 @@ void SetSimilarMusicEnabled(bool enabled)
 void SetRemixesEnabled(bool enabled)
 {
     plus.config.maniaRemixes = enabled;
+    SaveConfig();
+}
+
+void SetUpdateCheckEnabled(bool enabled)
+{
+    plus.config.updateCheck = enabled;
     SaveConfig();
 }
 
@@ -299,6 +311,7 @@ bool InDevMenu() { return engine.version == 5 ? sceneInfo.state == ENGINESTATE_D
 
 #include "PlusAudio.cpp"
 #include "PlusRetro.cpp"
+#include "PlusUpdate.cpp"
 #include "PlusMenu.cpp"
 #include "PlusTouch.cpp"
 
@@ -530,6 +543,7 @@ void RSDK::Plus::Update()
 {
     if (plus.noticeFrames > 0)
         --plus.noticeFrames;
+    UpdateFrame(plus.config.updateCheck); // The start-up check for a newer release (PlusUpdate.cpp).
     EnsureSaveFolder();
 
     // Select opens the Plus menu (unless the developer menu's controller

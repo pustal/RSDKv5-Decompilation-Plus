@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(RetroEngine)
 
-set(DECOMP_VERSION 1.10.0)
+set(DECOMP_VERSION 1.11.0)
 
 set(RETRO_REVISION 3 CACHE STRING "What revision to compile for. Defaults to v5U = 3")
 option(RETRO_DISABLE_PLUS "Forces the Plus DLC off. Without it the DLC is still off by default: the player turns it on (Settings.ini Game:plusDLC, or the Plus menu)." OFF)
@@ -167,6 +167,9 @@ target_compile_definitions(RetroEngine PRIVATE
     RETRO_DISABLE_LOG=$<BOOL:${RETRO_DISABLE_LOG}>
     
     RETRO_DEV_EXTRA="${RETRO_SUBSYSTEM} - ${DECOMP_VERSION}"
+
+    # (Plus) This build's version, for the update check (RSDKv5/RSDK/Plus/PlusUpdate.cpp).
+    PLUS_VERSION="${DECOMP_VERSION}"
 )
 
 # (Plus) Sonic Origins' video converter (RSDKv5/RSDK/Plus/PlusVideo.cpp): libvpx's

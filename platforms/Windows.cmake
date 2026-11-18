@@ -133,6 +133,8 @@ target_compile_definitions(RetroEngine PRIVATE _CRT_SECURE_NO_WARNINGS)
 target_link_libraries(RetroEngine
     winmm
     comctl32
+    winhttp # (Plus) The update check (RSDK/Plus/PlusUpdate.cpp).
+    shell32 # (Plus) ...and opening the releases page in the browser.
 )
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")

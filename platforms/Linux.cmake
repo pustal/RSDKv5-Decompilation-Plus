@@ -11,6 +11,8 @@ option(USE_SDL_AUDIO "Whether or not to use SDL for audio instead of the default
 # Some distros like Debian 11 need this to prevent link errors (used by std::thread in Audio devices)
 find_package(Threads REQUIRED)
 target_link_libraries(RetroEngine Threads::Threads)
+# (Plus) dlopen(), for libcurl in the update check (RSDK/Plus/PlusUpdate.cpp); part of libc on newer glibc.
+target_link_libraries(RetroEngine ${CMAKE_DL_LIBS})
 
 pkg_check_modules(OGG ogg)
 
