@@ -125,12 +125,12 @@ void ConfigureTransferForGame()
     const std::string page = transfer::android::PageAddress();
     if (!page.empty()) {
         texts.menuInfo         = "Transfer page: " + page + "  PIN " + transfer::android::Pin();
-        texts.packHint         = "Add retro packs from the transfer page on a phone or computer: " + page + ". Then choose Restart game.";
+        texts.packHint         = "Add retro packs and fan games from the transfer page on a phone or computer: " + page + ". Then choose Restart game.";
         texts.originsAudioHint = "Upload them on the transfer page (" + page + "), then press OK here or Convert there.";
     }
     else {
         texts.menuInfo         = "Connect to a network to reach the transfer page.";
-        texts.packHint         = "Add retro packs from the transfer page (connect to a network first), then choose Restart game.";
+        texts.packHint         = "Add retro packs and fan games from the transfer page (connect to a network first), then choose Restart game.";
         texts.originsAudioHint = "Upload them on the transfer page (connect to a network first), then press OK here.";
     }
     texts.originsVideoHint = texts.originsAudioHint;

@@ -19,7 +19,7 @@ import java.util.Enumeration;
 /**
  * (Plus) The transfer page: a small web server, started by the launcher, that
  * lets a phone or computer on the same network upload the game's files (Sonic
- * Mania's Data.rsdk, the retro packs, Sonic Origins' files, mods) and back up
+ * Mania's Data.rsdk, the retro packs, Sonic Nexus, Sonic Origins' files, mods) and back up
  * or restore the saves, as SonicWebMania does on webOS TVs. The server is
  * native (dependencies/android/transfer, glue in androidTransfer.cpp) and
  * keeps running while the game plays, in the same process.
@@ -54,7 +54,7 @@ public final class Transfer {
     /** The session's PIN, or "" when the server is off. */
     public static native String nativePin();
 
-    /** Whether the folder holds something to play (Sonic Mania's Data.rsdk or a playable retro pack). */
+    /** Whether the folder holds something to play (Sonic Mania's Data.rsdk, a playable retro pack or a fan game). */
     public static native boolean nativeHasGameData();
 
     /** Moves the files the page staged during the last session into place. Before the game starts. */

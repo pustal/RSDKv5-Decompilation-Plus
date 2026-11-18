@@ -80,8 +80,8 @@ OriginsHooks ToOriginsHooks(const ConversionHooks &hooks, const char *packSuffix
 
 /**
  * Every pack the game may read this session (see TransferServer::SetPacksInUse()):
- * Sonic Mania's, the retro games' and their converted Sonic Origins audio and videos.
- * As SonicWebMania's main.cpp.
+ * Sonic Mania's, the retro games' and their converted Sonic Origins audio and videos,
+ * and the fan games' data files. As SonicWebMania's main.cpp.
  */
 std::vector<std::string> PacksInUse(const Session &current)
 {
@@ -94,6 +94,10 @@ std::vector<std::string> PacksInUse(const Session &current)
             if (pack->state == PackState::Ready || pack->state == PackState::Unsupported)
                 packs.push_back(pack->path);
         }
+    }
+    for (const FanGame &game : current.retro.ScanFan()) {
+        if (game.file.state == PackState::Ready)
+            packs.push_back(game.file.path);
     }
     for (const std::string &folder : current.retro.PackFolders()) {
         for (const RetroGameInfo &game : RetroCatalogue()) {
@@ -166,7 +170,7 @@ bool HasGameData()
     std::lock_guard<std::mutex> lock(sessionMutex);
     if (!session)
         return false;
-    return session->storage.HasValidDataPack() || !session->retro.ScanPlayable().empty();
+    return session->storage.HasValidDataPack() || session->retro.AnyPlayable(); // A retro or fan game is enough.
 }
 
 int ApplyPendingFiles()

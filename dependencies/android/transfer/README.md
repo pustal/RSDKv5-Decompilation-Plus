@@ -1,6 +1,6 @@
 # Transfer page (Android)
 
-The web page the Android app runs on the local network, from which a phone or computer uploads the game's files (Sonic Mania's `Data.rsdk`, the retro packs, Sonic Origins' files, mods), backs up and restores the saves and changes the Plus settings. The launcher shows its address and PIN, and the Plus menu shows them in game.
+The web page the Android app runs on the local network, from which a phone or computer uploads the game's files (Sonic Mania's `Data.rsdk`, the retro packs, fan games such as Sonic Nexus, Sonic Origins' files, mods), backs up and restores the saves and changes the Plus settings. The launcher shows its address and PIN, and the Plus menu shows them in game.
 
 The server and the page come from [SonicWebMania](https://github.com/pustal/SonicWebMania) (its `src/port` and `web/index.html`), where the same page runs on LG webOS TVs. They are copied here under their licence (`LICENSE-SonicWebMania.md`), with these changes:
 

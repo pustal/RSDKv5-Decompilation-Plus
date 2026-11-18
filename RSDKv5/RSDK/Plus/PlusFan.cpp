@@ -65,13 +65,31 @@ bool LooksLikeFanData(const std::string &relative)
            && dirCount > 0;
 }
 
-/** Finds the fan games: in the user folder's "fan" folder, else in the first folder added with AddPackFolder() that has it. */
+/**
+ * The "fan" folder next to @p packFolder (an AddPackFolder() folder, with its
+ * trailing slash): "/usb/SonicWebMania/fan/" for "/usb/SonicWebMania/retro/".
+ */
+std::string SiblingFanFolder(const std::string &packFolder)
+{
+    const std::string trimmed = packFolder.substr(0, packFolder.size() - 1);
+    const size_t slash        = trimmed.find_last_of('/');
+    return (slash == std::string::npos ? std::string() : trimmed.substr(0, slash + 1)) + kFanFolder + "/";
+}
+
+/**
+ * Finds the fan games: in the user folder's "fan" folder, else, for each
+ * folder added with AddPackFolder(), in the "fan" folder next to it (a USB
+ * drive's SonicWebMania/fan beside SonicWebMania/retro) or in it.
+ */
 std::vector<FanGame> ScanFanGames()
 {
     std::vector<FanGame> found;
     for (const FanGameInfo &info : kFanGames) {
         std::vector<std::string> candidates = { std::string(kFanFolder) + "/" + info.fileName };
-        for (const std::string &folder : extraPackFolders) candidates.push_back(folder + info.fileName);
+        for (const std::string &folder : extraPackFolders) {
+            candidates.push_back(SiblingFanFolder(folder) + info.fileName);
+            candidates.push_back(folder + info.fileName);
+        }
         for (const std::string &candidate : candidates) {
             if (LooksLikeFanData(candidate)) {
                 found.push_back({ info, candidate });

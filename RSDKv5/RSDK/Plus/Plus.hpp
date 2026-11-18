@@ -235,8 +235,10 @@ bool32 ResolveLegacyMusic(const char *name, char *out, int32 outSize, int32 *loo
  * Also looks for the retro packs in @p folder (an absolute path, a USB
  * drive's folder for instance), after the user folder's "retro" folder:
  * each pack is taken from the first folder that has it. The fan games' files
- * (sonic-nexus.bin) are looked for there too, after the user folder's "fan"
- * folder. Saves stay in the user folder. Call before RunRetroEngine(); the packs are found at startup.
+ * (sonic-nexus.bin) are looked for after the user folder's "fan" folder in
+ * the "fan" folder next to @p folder (SonicWebMania/fan beside
+ * SonicWebMania/retro), then in @p folder itself. Saves stay in the user
+ * folder. Call before RunRetroEngine(); the packs are found at startup.
  */
 void AddPackFolder(const std::string &folder);
 

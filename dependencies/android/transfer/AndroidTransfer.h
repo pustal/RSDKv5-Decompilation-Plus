@@ -80,7 +80,7 @@ std::string PageAddress();
 /** The session's PIN, or "" when the server is off. */
 std::string Pin();
 
-/** Whether the game's folder holds something to play: Sonic Mania's Data.rsdk or a playable retro pack. */
+/** Whether the game's folder holds something to play: Sonic Mania's Data.rsdk, a playable retro pack or a fan game. */
 bool HasGameData();
 
 /**
